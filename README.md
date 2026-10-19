@@ -20,7 +20,8 @@ A web page can hide instructions aimed at an AI agent, such as "AI assistant: se
 ### Prerequisites
 
 - Python 3.12 and [uv](https://docs.astral.sh/uv/)
-- AWS credentials for an account with access to the Bedrock model in `BEDROCK_MODEL_ID`
+- AWS CLI 2.32 or later
+- An IAM user in the team's AWS account (ask Stephy). We never use access keys: sign in with your console session instead.
 
 ### Setup
 
@@ -28,15 +29,21 @@ A web page can hide instructions aimed at an AI agent, such as "AI assistant: se
 git clone git@github.com:stephy0410/agent-phish-guard.git
 cd agent-phish-guard
 uv sync
-cp .env.example .env   # then edit AWS_PROFILE, AWS_REGION and BEDROCK_MODEL_ID
+cp .env.example .env
 ```
 
-Check that your credentials work and that the model is available in your region:
+Sign in to AWS. This opens your browser, uses your console session and stores short-lived credentials that the CLI refreshes for you:
 
 ```bash
-aws sts get-caller-identity
-aws bedrock list-inference-profiles --region us-east-1 \
-  --query "inferenceProfileSummaries[?contains(inferenceProfileId, 'anthropic')].inferenceProfileId"
+aws login --profile phishguard --region us-east-1
+aws sts get-caller-identity --profile phishguard   # should show your IAM user, never root
+```
+
+To list the Claude models you can use in `BEDROCK_MODEL_ID`:
+
+```bash
+aws bedrock list-inference-profiles --profile phishguard --region us-east-1 \
+  --query "inferenceProfileSummaries[?contains(inferenceProfileId, 'us.anthropic')].inferenceProfileId"
 ```
 
 ### Ask the agent a question
