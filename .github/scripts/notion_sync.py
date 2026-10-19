@@ -4,8 +4,8 @@ Runs in GitHub Actions on pull_request events. The PR description links the task
 
     Notion task: https://app.notion.com/p/Task-name-3fd47f6f17c98182921ed7ef0d49a4bf
 
-- PR opened, reopened, marked ready or edited: a task in Backlog or Not started moves to
-  In progress. Other statuses (Bloqueado, Done) are left alone.
+- PR opened, reopened, marked ready, edited or pushed to: a task in Backlog or Not started
+  moves to In progress. Other statuses (Bloqueado, Done) are left alone.
 - PR merged: the task moves to Done when every checkbox on its page is checked, the team's
   definition of done. Otherwise the status stays and the PR gets a comment listing what is left.
 
@@ -18,6 +18,7 @@ import json
 import os
 import re
 import sys
+import urllib.error
 import urllib.request
 from typing import Any
 
@@ -27,7 +28,7 @@ STATUS_PROPERTY = "Status"
 NOT_STARTED = {"Backlog", "Not started"}
 IN_PROGRESS = "In progress"
 DONE = "Done"
-OPEN_ACTIONS = {"opened", "reopened", "ready_for_review", "edited"}
+OPEN_ACTIONS = {"opened", "reopened", "ready_for_review", "edited", "synchronize"}
 
 _URL = re.compile(r"https?://[^\s)\]>]+")
 _PAGE_ID = re.compile(
@@ -90,8 +91,19 @@ class Notion:
         request = urllib.request.Request(
             f"{NOTION_API}{path}", data=data, headers=self._headers, method=method
         )
-        with urllib.request.urlopen(request, timeout=30) as response:
-            return json.loads(response.read())
+        try:
+            with urllib.request.urlopen(request, timeout=30) as response:
+                return json.loads(response.read())
+        except urllib.error.HTTPError as exc:
+            detail = exc.read().decode(errors="replace")
+            hint = (
+                "\nIs the Notion integration connected to the plan page (··· > Connections)?"
+                if exc.code in (403, 404)
+                else ""
+            )
+            raise SystemExit(
+                f"Notion API {method} {path} failed with HTTP {exc.code}: {detail}{hint}"
+            ) from None
 
     def status(self, page: str) -> str:
         properties = self._call("GET", f"/pages/{page}")["properties"]

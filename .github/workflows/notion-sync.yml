@@ -2,7 +2,7 @@ name: Notion task sync
 
 on:
   pull_request:
-    types: [opened, reopened, ready_for_review, edited, closed]
+    types: [opened, reopened, ready_for_review, edited, synchronize, closed]
 
 permissions:
   contents: read

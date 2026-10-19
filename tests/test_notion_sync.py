@@ -58,6 +58,7 @@ def test_unchecked_lists_only_open_todos():
         ("opened", "Not started", "In progress"),
         ("opened", "Backlog", "In progress"),
         ("edited", "Not started", "In progress"),
+        ("synchronize", "Not started", "In progress"),
         ("opened", "In progress", None),
         ("opened", "Bloqueado", None),
         ("reopened", "Done", None),
