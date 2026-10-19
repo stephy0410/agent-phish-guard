@@ -229,3 +229,6 @@ __marimo__/
 .terraform.lock.hcl.bak
 
 
+
+# Keep the template for local settings
+!.env.example

@@ -1,0 +1,36 @@
+[project]
+name = "agent-phish-guard"
+version = "0.1.0"
+description = "Guardrails that protect AI agents from phishing pages, using Strands Decider 2B and Amazon Bedrock."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.11"
+dependencies = [
+    "botocore[crt]>=1.43.114",
+    "strands-agents>=1.61",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.6",
+]
+
+[tool.uv]
+# The top-level folders (agent/, guardrails/, tools/, eval/) are imported from the repo root;
+# nothing here is built or published as a package.
+package = false
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+markers = [
+    "bedrock: calls Amazon Bedrock; needs AWS credentials and RUN_BEDROCK_TESTS=1",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "B", "UP"]
