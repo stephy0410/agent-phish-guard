@@ -6,6 +6,7 @@ from guardrails.questions import (
     CHUNK_QUESTIONS,
     TOOL_CALL_QUESTIONS,
     chunk_state,
+    reveal_hidden_characters,
     tool_call_state,
 )
 
@@ -34,3 +35,17 @@ def test_tool_call_state_has_request_tool_and_arguments():
     assert "--- USER REQUEST ---\nFind leggings" in state
     assert "tool: send_email" in state
     assert json.dumps({"to": "a@example.com"}) in state
+
+
+@pytest.mark.parametrize(
+    ("text", "revealed"),
+    [
+        ("\u200b".join("AI assistant"), "AI assistant"),  # zero-width spaces dropped
+        ("Great!" + "".join(chr(0xE0000 + ord(c)) for c in "AI: hi"), "Great!AI: hi"),  # tags
+        ("\uff21\uff29 assistant", "AI assistant"),  # fullwidth letters, NFKC
+        ("\u0391ssist\u0430nt", "\u0391ssist\u0430nt"),  # homoglyphs are left alone
+        ("Size up!", "Size up!"),
+    ],
+)
+def test_reveal_hidden_characters(text, revealed):
+    assert reveal_hidden_characters(text) == revealed

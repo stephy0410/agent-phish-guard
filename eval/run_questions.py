@@ -20,7 +20,13 @@ from pathlib import Path
 from typing import Any
 
 from guardrails.decider import DeciderClient
-from guardrails.questions import CHUNK_QUESTIONS, TOOL_CALL_QUESTIONS, chunk_state, tool_call_state
+from guardrails.questions import (
+    CHUNK_QUESTIONS,
+    TOOL_CALL_QUESTIONS,
+    chunk_state,
+    reveal_hidden_characters,
+    tool_call_state,
+)
 
 HERE = Path(__file__).parent
 EXAMPLES = HERE / "question_examples.json"
@@ -74,6 +80,31 @@ def ask_all(client: DeciderClient, examples: dict[str, Any]) -> list[dict[str, A
                         "latency_ms": response.latency_ms,
                     }
                 )
+    return rows
+
+
+def normalization_check(client: DeciderClient, examples: dict[str, Any]) -> list[dict[str, Any]]:
+    """Ask the chunk questions (with descriptions) again on reveal_hidden_characters(text).
+
+    Only for chunks that the normalization changes, i.e. those carrying zero-width, tag or
+    compatibility characters. Compare with the raw rows to see whether the scanner should
+    read the normalized copy.
+    """
+    rows = []
+    for ex in examples["chunks"]:
+        revealed = reveal_hidden_characters(ex["text"])
+        if revealed == ex["text"]:
+            continue
+        response = client.ask(chunk_state(revealed), CHUNK_QUESTIONS)
+        for key in CHUNK_QUESTIONS:
+            rows.append(
+                {
+                    "id": ex["id"],
+                    "question": key,
+                    "expected": ex["expected"][key],
+                    "p_true": response.answers[key]["noul"],
+                }
+            )
     return rows
 
 
@@ -169,6 +200,7 @@ def markdown(
     rows: list[dict[str, Any]],
     summary: list[dict[str, Any]],
     rule: list[dict[str, Any]],
+    normalized: list[dict[str, Any]],
 ) -> str:
     by_key = {(r["kind"], r["id"], r["variant"], r["question"]): r for r in rows}
     lines = [
@@ -237,6 +269,21 @@ def markdown(
             truth = ("yes" if ex[label] else "no") if kind == "chunk" else ex[label]
             lines.append(f"| `{ex['id']}` | {truth} | " + " | ".join(cells) + " |")
 
+    if normalized:
+        lines += [
+            "",
+            "## Normalization check",
+            "",
+            "Chunks with zero-width, tag or compatibility characters, asked again (with "
+            "descriptions) after `reveal_hidden_characters`.",
+            "",
+            "| Example | Question | Raw text | Normalized |",
+            "| --- | --- | --- | --- |",
+        ]
+        for n in normalized:
+            raw = by_key[("chunk", n["id"], VARIANTS[0], n["question"])]
+            lines.append(f"| `{n['id']}` | `{n['question']}` | {cell(raw)} | {cell(n)} |")
+
     # One latency per request: every question of an example and variant shares a request.
     per_request = {
         (r["kind"], r["id"], r["variant"]): r["latency_ms"]
@@ -264,6 +311,7 @@ def main() -> int:
     rows = ask_all(client, examples)
     summary = summarize(rows)
     rule = chunk_rule(examples, rows)
+    normalized = normalization_check(client, examples)
     RESULTS.mkdir(exist_ok=True)
     (RESULTS / "questions.json").write_text(
         json.dumps(
@@ -275,13 +323,14 @@ def main() -> int:
                 "questions": asked_questions(),
                 "summary": summary,
                 "chunk_rule": rule,
+                "normalization_check": normalized,
                 "rows": rows,
             },
             indent=2,
         )
         + "\n"
     )
-    report = markdown(examples, rows, summary, rule)
+    report = markdown(examples, rows, summary, rule, normalized)
     (RESULTS / "questions.md").write_text(report)
     print(report)
     return 0
