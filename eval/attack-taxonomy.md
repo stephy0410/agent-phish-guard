@@ -60,12 +60,12 @@ test it**, and a **benign counterpart** we must keep passing to avoid false posi
 | ID | Class | Typical `vector` |
 | --- | --- | --- |
 | `css_hidden` | A. CSS-hidden text | `dom` |
-| `html_comment` | B. HTML comments | `metadata` |
+| `html_comment` | B. HTML comments | `dom` (`metadata` if in `<head>`) |
 | `alt_aria` | C. Image `alt` / ARIA text | `attribute` |
 | `meta_tag` | D. Meta tags & head metadata | `metadata` |
 | `zero_width` | E. Zero-width / invisible Unicode | any |
 | `homoglyph` | F. Homoglyph / confusable substitution | any |
-| `ugc` | G. Instructions in user-generated content | `ugc` |
+| `ugc_injection` | G. Instructions in user-generated content | `ugc` |
 | `fake_system` | H. Fake system / role framing | any |
 | `fragmentation` | I. Payload fragmentation / multi-chunk | any |
 | `encoded` | J. Encoded / indirection payloads | any |
@@ -154,7 +154,7 @@ test it**, and a **benign counterpart** we must keep passing to avoid false posi
 - **Benign counterpart:** legitimately multilingual content and brand names with
   stylized spelling.
 
-### G. Instructions embedded in user-generated content — `ugc`
+### G. Instructions embedded in user-generated content — `ugc_injection`
 - **What:** The payload sits inside plausible-looking review/Q&A text — our headline
   demo vector.
 - **Where it hides:** in plain sight, framed as a customer review, seller answer, or
@@ -218,7 +218,7 @@ if obeyed.
 
 | Priority | Techniques | Rationale |
 | --- | --- | --- |
-| **P0 (demo + core eval)** | `ugc`, `css_hidden`, `fake_system` | Highest realism; drive the live demo and headline metrics |
+| **P0 (demo + core eval)** | `ugc_injection`, `css_hidden`, `fake_system` | Highest realism; drive the live demo and headline metrics |
 | **P1** | `html_comment`, `alt_aria`, `meta_tag`, `zero_width` | Common, cheap to author, good coverage breadth |
 | **P2** | `homoglyph`, `fragmentation`, `encoded` | Evasion/robustness; stress-test calibration |
 
