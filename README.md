@@ -13,6 +13,7 @@ A web page can hide instructions aimed at an AI agent, such as "AI assistant: se
 | `tools/` | Page browsing, the HTML chunker and the simulated sensitive tool |
 | `eval/` | Attack and benign datasets, metrics, threshold calibration, Bedrock-judge baseline |
 | `infra/` | Terraform: IAM for Bedrock and the compute |
+| `contracts/` | The data contract between the folders above: `Chunk`, `Decision`, `Action`, `LabeledChunk` ([docs/contract.md](docs/contract.md)) |
 | `tests/` | Unit tests |
 
 ## Run it locally

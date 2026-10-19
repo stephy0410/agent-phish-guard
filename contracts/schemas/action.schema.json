@@ -1,0 +1,157 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "agent-phish-guard/contracts/0.1/action.schema.json",
+  "$defs": {
+    "Decision": {
+      "additionalProperties": false,
+      "description": "Decider's answer to one typed question about one chunk or one proposed tool call.",
+      "properties": {
+        "subject_kind": {
+          "enum": [
+            "chunk",
+            "tool_call"
+          ],
+          "title": "Subject Kind",
+          "type": "string"
+        },
+        "subject_id": {
+          "description": "Chunk.id, or the Strands toolUseId of the tool call.",
+          "minLength": 1,
+          "title": "Subject Id",
+          "type": "string"
+        },
+        "question": {
+          "description": "Key of the typed question, e.g. 'instructs_ai'.",
+          "minLength": 1,
+          "title": "Question",
+          "type": "string"
+        },
+        "question_type": {
+          "enum": [
+            "noul",
+            "choice",
+            "score"
+          ],
+          "title": "Question Type",
+          "type": "string"
+        },
+        "label": {
+          "description": "The chosen answer: 'true' or 'false' for noul, the option name for choice, the nearest level for score.",
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "confidence": {
+          "description": "Decider's normalized confidence, (N * p_max - 1) / (N - 1): 0 means a uniform guess, 1 means certain. For noul this is |2p - 1|.",
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "probabilities": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "description": "Probability of every option. For noul: {'true': p, 'false': 1 - p}.",
+          "title": "Probabilities",
+          "type": "object"
+        },
+        "model": {
+          "description": "Decider checkpoint that answered.",
+          "minLength": 1,
+          "title": "Model",
+          "type": "string"
+        },
+        "latency_ms": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Server-side latency.",
+          "title": "Latency Ms"
+        }
+      },
+      "required": [
+        "subject_kind",
+        "subject_id",
+        "question",
+        "question_type",
+        "label",
+        "confidence",
+        "probabilities",
+        "model"
+      ],
+      "title": "Decision",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "What the guardrail does with a chunk or a tool call, and why.",
+  "properties": {
+    "type": {
+      "description": "'proceed': let it through. 'guide': let the model retry with feedback. 'confirm': ask the user first (tool calls only). 'deny': block it.",
+      "enum": [
+        "proceed",
+        "guide",
+        "confirm",
+        "deny"
+      ],
+      "title": "Type",
+      "type": "string"
+    },
+    "subject_kind": {
+      "enum": [
+        "chunk",
+        "tool_call"
+      ],
+      "title": "Subject Kind",
+      "type": "string"
+    },
+    "subject_id": {
+      "minLength": 1,
+      "title": "Subject Id",
+      "type": "string"
+    },
+    "reason": {
+      "description": "Why, for logs and metrics. Never shown to the model.",
+      "minLength": 1,
+      "title": "Reason",
+      "type": "string"
+    },
+    "message": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Text for whoever acts next: feedback to the model for 'guide', the question to the user for 'confirm', the replacement or cancellation text for 'deny'. Null for 'proceed'.",
+      "title": "Message"
+    },
+    "decisions": {
+      "description": "The decisions this action was based on.",
+      "items": {
+        "$ref": "#/$defs/Decision"
+      },
+      "title": "Decisions",
+      "type": "array"
+    }
+  },
+  "required": [
+    "type",
+    "subject_kind",
+    "subject_id",
+    "reason"
+  ],
+  "title": "Action",
+  "type": "object"
+}
