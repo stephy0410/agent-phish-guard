@@ -8,13 +8,14 @@ from __future__ import annotations
 import sys
 
 from agent.core import build_agent
+from tools.registry import agent_tools
 
 DEFAULT_QUESTION = "In one sentence, what is indirect prompt injection?"
 
 
 def main(argv: list[str]) -> int:
     question = " ".join(argv) or DEFAULT_QUESTION
-    print(build_agent()(question))
+    print(build_agent(tools=agent_tools())(question))
     return 0
 
 
