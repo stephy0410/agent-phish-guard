@@ -1,0 +1,42 @@
+{
+  "measured_at": "2026-10-19T01:42:44+00:00",
+  "server": {
+    "status": "ok",
+    "model": "strands-decider-2B-qwen3.5-v1-2610",
+    "checkpoint": "StrandsAgents/strands-decider-2B-qwen3.5-v1-2610",
+    "base_model": "Qwen/Qwen3.5-2B-Base",
+    "num_slots": 24,
+    "max_length": 4096,
+    "temperature": 1.0545210242263665,
+    "device": "mps",
+    "prefix_cache": true
+  },
+  "hardware": {
+    "os": "macOS-15.7.1-arm64-arm-64bit",
+    "machine": "arm64",
+    "python": "3.12.6",
+    "cpu": "Apple M3",
+    "memory_gb": "16"
+  },
+  "runs": 10,
+  "warmup": 2,
+  "input_tokens": 176,
+  "answer": {
+    "instructs_ai": {
+      "type": "noul",
+      "noul": 0.6473
+    }
+  },
+  "server_latency_ms": {
+    "p50": 313.8,
+    "mean": 313.7,
+    "min": 310.2,
+    "max": 315.9
+  },
+  "client_latency_ms": {
+    "p50": 316.4,
+    "mean": 316.3,
+    "min": 312.3,
+    "max": 319.7
+  }
+}
