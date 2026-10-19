@@ -124,7 +124,21 @@ def test_get_user_profile_returns_a_copy():
 # --------------------------------------------------------------------------- registration
 
 
-def test_tools_are_registered_on_the_agent(no_network):
+@pytest.fixture
+def fake_aws(monkeypatch):
+    """Dummy credentials so building the Bedrock client never looks for real ones.
+
+    Without them, boto3 on a CI runner asks the EC2 metadata endpoint for credentials, which is
+    a network call. Nothing here talks to AWS: the model is never invoked.
+    """
+    for name in ("AWS_PROFILE", "AWS_SESSION_TOKEN"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "testing")
+    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "testing")
+    monkeypatch.setenv("AWS_EC2_METADATA_DISABLED", "true")
+
+
+def test_tools_are_registered_on_the_agent(fake_aws, no_network):
     agent = build_agent(Settings(), tools=agent_tools())
     assert set(agent.tool_names) == {"get_user_profile", "send_data"}
 
