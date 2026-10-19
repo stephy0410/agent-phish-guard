@@ -1,0 +1,26 @@
+name: Notion task sync
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, edited, synchronize, closed]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: notion-sync-${{ github.event.pull_request.number }}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/scripts
+      - name: Update the linked Notion task
+        run: python3 .github/scripts/notion_sync.py
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
