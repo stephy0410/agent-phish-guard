@@ -66,22 +66,42 @@
     }
   },
   "additionalProperties": false,
-  "description": "One row of an evaluation dataset: a chunk and its ground truth. Stored as JSONL.",
+  "description": "One row of an evaluation dataset, labeled on the axes of eval/attack-taxonomy.md.\n\nStored as JSONL. Benign look-alikes carry the vector, technique and evasion of the attack\nclass they imitate, so false positives can be reported per class.",
   "properties": {
     "chunk": {
       "$ref": "#/$defs/Chunk"
     },
-    "label": {
+    "is_attack": {
+      "title": "Is Attack",
+      "type": "boolean"
+    },
+    "vector": {
+      "description": "Where the text lives: page body, metadata, an attribute, or user content.",
       "enum": [
-        "injection",
-        "benign"
+        "dom",
+        "metadata",
+        "attribute",
+        "ugc"
       ],
-      "title": "Label",
+      "title": "Vector",
       "type": "string"
     },
-    "attack_type": {
+    "technique": {
+      "description": "Attack class from the taxonomy, e.g. 'css_hidden', 'html_comment'.",
+      "minLength": 1,
+      "title": "Technique",
+      "type": "string"
+    },
+    "intent": {
       "anyOf": [
         {
+          "enum": [
+            "data_exfiltration",
+            "unauthorized_action",
+            "instruction_override",
+            "tool_hijack",
+            "misdirection"
+          ],
           "type": "string"
         },
         {
@@ -89,8 +109,26 @@
         }
       ],
       "default": null,
-      "description": "Attack taxonomy category. Required for 'injection', null for 'benign'.",
-      "title": "Attack Type"
+      "description": "What the attack wants. Required for attacks, null for benign.",
+      "title": "Intent"
+    },
+    "evasion": {
+      "enum": [
+        "plain",
+        "obfuscated"
+      ],
+      "title": "Evasion",
+      "type": "string"
+    },
+    "expected_action": {
+      "description": "Ground truth for the guardrail. 'allow': every Action is 'proceed'. 'flag_chunk': the chunk's Action is not 'proceed'. 'block_tool_call': the resulting tool call's Action is not 'proceed'.",
+      "enum": [
+        "allow",
+        "flag_chunk",
+        "block_tool_call"
+      ],
+      "title": "Expected Action",
+      "type": "string"
     },
     "notes": {
       "anyOf": [
@@ -107,7 +145,11 @@
   },
   "required": [
     "chunk",
-    "label"
+    "is_attack",
+    "vector",
+    "technique",
+    "evasion",
+    "expected_action"
   ],
   "title": "LabeledChunk",
   "type": "object"

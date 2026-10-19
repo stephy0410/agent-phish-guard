@@ -79,10 +79,25 @@ def test_confirm_is_allowed_on_tool_calls():
     )
 
 
+LABELED = json.loads((SCHEMA_DIR.parent / "examples" / "labeled_chunk.json").read_text())
+
+
+def test_benign_look_alike_is_valid():
+    LabeledChunk.model_validate(
+        {**LABELED, "is_attack": False, "intent": None, "expected_action": "allow"}
+    )
+
+
 @pytest.mark.parametrize(
-    ("label", "attack_type"),
-    [("injection", None), ("benign", "data_exfiltration")],
+    "fields",
+    [
+        {"intent": None},  # attack without intent
+        {"expected_action": "allow"},  # attack expected to pass
+        {"is_attack": False, "expected_action": "allow"},  # benign with an intent
+        {"is_attack": False, "intent": None, "expected_action": "flag_chunk"},  # benign flagged
+        {"vector": "header"},  # unknown vector
+    ],
 )
-def test_attack_type_matches_label(label, attack_type):
+def test_labeled_chunk_rules(fields):
     with pytest.raises(ValidationError):
-        LabeledChunk(chunk=Chunk(**CHUNK), label=label, attack_type=attack_type)
+        LabeledChunk.model_validate({**LABELED, **fields})

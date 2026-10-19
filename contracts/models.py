@@ -20,6 +20,18 @@ SubjectKind = Literal["chunk", "tool_call"]
 QuestionType = Literal["noul", "choice", "score"]
 ActionType = Literal["proceed", "guide", "confirm", "deny"]
 
+# Label axes from eval/attack-taxonomy.md.
+Vector = Literal["dom", "metadata", "attribute", "ugc"]
+Intent = Literal[
+    "data_exfiltration",
+    "unauthorized_action",
+    "instruction_override",
+    "tool_hijack",
+    "misdirection",
+]
+Evasion = Literal["plain", "obfuscated"]
+ExpectedAction = Literal["allow", "flag_chunk", "block_tool_call"]
+
 
 class _Model(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -123,20 +135,40 @@ class Action(_Model):
 
 
 class LabeledChunk(_Model):
-    """One row of an evaluation dataset: a chunk and its ground truth. Stored as JSONL."""
+    """One row of an evaluation dataset, labeled on the axes of eval/attack-taxonomy.md.
+
+    Stored as JSONL. Benign look-alikes carry the vector, technique and evasion of the attack
+    class they imitate, so false positives can be reported per class.
+    """
 
     chunk: Chunk
-    label: Literal["injection", "benign"]
-    attack_type: str | None = Field(
-        default=None,
-        description="Attack taxonomy category. Required for 'injection', null for 'benign'.",
+    is_attack: bool
+    vector: Vector = Field(
+        description="Where the text lives: page body, metadata, an attribute, or user content."
+    )
+    technique: str = Field(
+        min_length=1,
+        description="Attack class from the taxonomy, e.g. 'css_hidden', 'html_comment'.",
+    )
+    intent: Intent | None = Field(
+        default=None, description="What the attack wants. Required for attacks, null for benign."
+    )
+    evasion: Evasion
+    expected_action: ExpectedAction = Field(
+        description=(
+            "Ground truth for the guardrail. 'allow': every Action is 'proceed'. 'flag_chunk': "
+            "the chunk's Action is not 'proceed'. 'block_tool_call': the resulting tool call's "
+            "Action is not 'proceed'."
+        )
     )
     notes: str | None = None
 
     @model_validator(mode="after")
-    def _check_attack_type(self) -> LabeledChunk:
-        if (self.label == "injection") != (self.attack_type is not None):
-            raise ValueError("attack_type is required for injections and must be null for benign")
+    def _check_labels(self) -> LabeledChunk:
+        if self.is_attack != (self.intent is not None):
+            raise ValueError("intent is required for attacks and must be null for benign rows")
+        if self.is_attack == (self.expected_action == "allow"):
+            raise ValueError("attacks must not expect 'allow', and benign rows must")
         return self
 
 
