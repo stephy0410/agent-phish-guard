@@ -22,6 +22,18 @@ ActionType = Literal["proceed", "guide", "confirm", "deny"]
 
 # Label axes from eval/attack-taxonomy.md.
 Vector = Literal["dom", "metadata", "attribute", "ugc"]
+Technique = Literal[
+    "css_hidden",  # A
+    "html_comment",  # B
+    "alt_aria",  # C
+    "meta_tag",  # D
+    "zero_width",  # E
+    "homoglyph",  # F
+    "ugc_injection",  # G
+    "fake_system",  # H
+    "fragmentation",  # I
+    "encoded",  # J
+]
 Intent = Literal[
     "data_exfiltration",
     "unauthorized_action",
@@ -144,11 +156,14 @@ class LabeledChunk(_Model):
     chunk: Chunk
     is_attack: bool
     vector: Vector = Field(
-        description="Where the text lives: page body, metadata, an attribute, or user content."
+        description=(
+            "Where the text lives in the page source: the body ('dom', including HTML comments), "
+            "the <head> ('metadata'), an HTML attribute, or user-generated content. Whether a "
+            "person sees it is Chunk.visibility, a separate axis."
+        )
     )
-    technique: str = Field(
-        min_length=1,
-        description="Attack class from the taxonomy, e.g. 'css_hidden', 'html_comment'.",
+    technique: Technique = Field(
+        description="Taxonomy class (A to J). Benign rows use the class they imitate."
     )
     intent: Intent | None = Field(
         default=None, description="What the attack wants. Required for attacks, null for benign."

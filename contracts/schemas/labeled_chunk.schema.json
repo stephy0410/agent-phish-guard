@@ -76,7 +76,7 @@
       "type": "boolean"
     },
     "vector": {
-      "description": "Where the text lives: page body, metadata, an attribute, or user content.",
+      "description": "Where the text lives in the page source: the body ('dom', including HTML comments), the <head> ('metadata'), an HTML attribute, or user-generated content. Whether a person sees it is Chunk.visibility, a separate axis.",
       "enum": [
         "dom",
         "metadata",
@@ -87,8 +87,19 @@
       "type": "string"
     },
     "technique": {
-      "description": "Attack class from the taxonomy, e.g. 'css_hidden', 'html_comment'.",
-      "minLength": 1,
+      "description": "Taxonomy class (A to J). Benign rows use the class they imitate.",
+      "enum": [
+        "css_hidden",
+        "html_comment",
+        "alt_aria",
+        "meta_tag",
+        "zero_width",
+        "homoglyph",
+        "ugc_injection",
+        "fake_system",
+        "fragmentation",
+        "encoded"
+      ],
       "title": "Technique",
       "type": "string"
     },

@@ -96,6 +96,7 @@ def test_benign_look_alike_is_valid():
         {"is_attack": False, "expected_action": "allow"},  # benign with an intent
         {"is_attack": False, "intent": None, "expected_action": "flag_chunk"},  # benign flagged
         {"vector": "header"},  # unknown vector
+        {"technique": "css-hidden"},  # not in the taxonomy's vocabulary
     ],
 )
 def test_labeled_chunk_rules(fields):
