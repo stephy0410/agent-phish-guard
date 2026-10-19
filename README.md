@@ -81,7 +81,8 @@ uv run ruff check . && uv run ruff format --check .  # lint
 
 ## Team workflow
 
-- One branch and one pull request per Notion task. Only admins can merge into `main`.
+- One branch and one pull request per Notion task. Nobody pushes to `main` directly.
+- A PR can be merged once another teammate approves it and the `test` check passes. The `CI` workflow runs `ruff` and `pytest` on every PR.
 - Put the task's link in the PR description on a `Notion task: <link>` line (the PR template has it).
 - The `Notion task sync` workflow then keeps the task's status current: opening the PR moves the task to In progress, and merging moves it to Done once every done criterion on the Notion page is checked. If some are still unchecked, the PR gets a comment listing them.
 
