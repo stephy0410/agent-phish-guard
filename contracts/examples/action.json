@@ -1,0 +1,20 @@
+{
+  "type": "deny",
+  "subject_kind": "chunk",
+  "subject_id": "5f2a9c1e:7",
+  "reason": "instructs_ai is true with confidence 0.86 on hidden text",
+  "message": "[Removed by Agent Phish Guard: this part of the page contained instructions aimed at AI assistants.]",
+  "decisions": [
+    {
+      "subject_kind": "chunk",
+      "subject_id": "5f2a9c1e:7",
+      "question": "instructs_ai",
+      "question_type": "noul",
+      "label": "true",
+      "confidence": 0.86,
+      "probabilities": {"true": 0.93, "false": 0.07},
+      "model": "strands-decider-2B-qwen3.5-v1-2610",
+      "latency_ms": 314.2
+    }
+  ]
+}

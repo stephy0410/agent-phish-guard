@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "agent-phish-guard/contracts/0.1/chunk.schema.json",
+  "additionalProperties": false,
+  "description": "A piece of text taken from a web page, checked before it enters the model's context.",
+  "properties": {
+    "id": {
+      "description": "Unique within the page fetch, stable across runs, e.g. '<url hash>:<index>'.",
+      "minLength": 1,
+      "title": "Id",
+      "type": "string"
+    },
+    "url": {
+      "description": "The page the text came from.",
+      "minLength": 1,
+      "title": "Url",
+      "type": "string"
+    },
+    "index": {
+      "description": "Position of the chunk in the page, from 0.",
+      "minimum": 0,
+      "title": "Index",
+      "type": "integer"
+    },
+    "text": {
+      "description": "Plain text: no HTML tags, whitespace collapsed to single spaces.",
+      "minLength": 1,
+      "title": "Text",
+      "type": "string"
+    },
+    "visibility": {
+      "description": "'visible': a person sees it on the rendered page. 'hidden': in the page body but not shown (display:none, visibility:hidden, zero size or opacity, off-screen, same color as the background). 'metadata': never body text (HTML comments, alt/title/aria-label attributes, meta tags, JSON-LD).",
+      "enum": [
+        "visible",
+        "hidden",
+        "metadata"
+      ],
+      "title": "Visibility",
+      "type": "string"
+    },
+    "source": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Where in the HTML the text came from, e.g. 'p', 'img[alt]', 'comment'.",
+      "title": "Source"
+    }
+  },
+  "required": [
+    "id",
+    "url",
+    "index",
+    "text",
+    "visibility"
+  ],
+  "title": "Chunk",
+  "type": "object"
+}

@@ -13,6 +13,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "botocore", extra = ["crt"] },
+    { name = "pydantic" },
     { name = "strands-agents" },
 ]
 
@@ -25,6 +26,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "botocore", extras = ["crt"], specifier = ">=1.43.114" },
+    { name = "pydantic", specifier = ">=2.7" },
     { name = "strands-agents", specifier = ">=1.61" },
 ]
 
