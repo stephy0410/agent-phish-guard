@@ -6,7 +6,7 @@ import os
 from dataclasses import dataclass
 
 DEFAULT_REGION = "us-east-1"
-DEFAULT_MODEL_ID = "us.anthropic.claude-opus-5-5"
+DEFAULT_MODEL_ID = "us.anthropic.claude-opus-4-6-v1"
 
 
 @dataclass(frozen=True)
