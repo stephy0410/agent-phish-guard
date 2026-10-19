@@ -36,6 +36,14 @@ def bare(questions: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
     }
 
 
+def asked_questions() -> dict[str, dict[str, Any]]:
+    """The exact questions each variant sends, recorded next to the results they produce."""
+    return {
+        kind: dict(zip(VARIANTS, (questions, bare(questions)), strict=True))
+        for kind, questions in (("chunk", CHUNK_QUESTIONS), ("tool_call", TOOL_CALL_QUESTIONS))
+    }
+
+
 def ask_all(client: DeciderClient, examples: dict[str, Any]) -> list[dict[str, Any]]:
     """One row per example, variant and question."""
     jobs = [
@@ -61,7 +69,8 @@ def ask_all(client: DeciderClient, examples: dict[str, Any]) -> list[dict[str, A
                         "variant": variant,
                         "question": key,
                         "expected": example["expected"][key],
-                        "p_true": round(response.answers[key]["noul"], 3),
+                        # Full precision: rounding before the cut-off could flip an answer.
+                        "p_true": response.answers[key]["noul"],
                         "latency_ms": response.latency_ms,
                     }
                 )
@@ -263,6 +272,7 @@ def main() -> int:
                 "model": server.get("model"),
                 "device": server.get("device"),
                 "cutoff": CUTOFF,
+                "questions": asked_questions(),
                 "summary": summary,
                 "chunk_rule": rule,
                 "rows": rows,

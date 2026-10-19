@@ -1,8 +1,9 @@
 """Typed Decider questions for the chunk scanner and the tool-call guardrail (draft).
 
 Every question is a yes/no (noul). Decider returns P(true); the policy that turns those
-probabilities into an Action lives elsewhere. The true/false descriptions carry most of the
-signal, so they are written as carefully as the questions.
+probabilities into an Action lives elsewhere. Each question also has true/false descriptions.
+On the dev set they did not clearly improve separation over the bare questions (see
+docs/questions.md), so whether to keep them is decided per question on the labeled dataset.
 
 Try them by hand against a running Decider server:
 
