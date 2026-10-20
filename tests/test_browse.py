@@ -140,6 +140,9 @@ def test_only_localhost_is_allowed(url):
         ("/styles.css", "not a web page"),
         ("/missing.html", "Page not found"),
         ("", "Empty URL"),
+        ("http://localhost:8000/x%00.html", "invalid path"),  # null byte
+        ("http://localhost:8000/index%00.html", "invalid path"),
+        ("http://localhost:abc/index.html", "invalid port"),
     ],
 )
 def test_bad_paths_are_refused(url, message):
@@ -194,3 +197,25 @@ def test_tool_description_is_neutral():
     description = browse_page.tool_spec["description"].lower()
     for word in ("only", "never", "untrusted", "ignore", "careful", "instructions"):
         assert word not in description
+
+
+def test_userinfo_is_dropped():
+    url = "http://evil.example@localhost:8000/index.html"
+    assert normalize_url(url) == f"{BASE_URL}index.html"
+    text = browse(url)
+    assert text.startswith(f"Page: {BASE_URL}index.html")
+    assert "evil.example" not in text
+    assert all("@" not in c.url for c in fetch_chunks(url))
+
+
+def test_hook_errors_propagate_so_nothing_unchecked_is_shown():
+    """Fail closed: if the guardrail breaks, the tool call fails instead of showing raw text."""
+
+    class DeciderDown(RuntimeError):
+        pass
+
+    def broken_guard(chunks):
+        raise DeciderDown("Decider unreachable")
+
+    with pytest.raises(DeciderDown):
+        browse(MANIFEST["pages"][0]["file"], on_chunks=broken_guard)

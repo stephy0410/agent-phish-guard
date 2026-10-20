@@ -19,7 +19,7 @@ from __future__ import annotations
 import os
 from collections.abc import Callable
 from pathlib import Path
-from urllib.parse import unquote, urljoin, urlsplit
+from urllib.parse import unquote, urljoin, urlsplit, urlunsplit
 
 from bs4 import BeautifulSoup
 from strands import tool
@@ -50,6 +50,7 @@ def normalize_url(url: str, base: str = BASE_URL) -> str:
 
     Accepts absolute localhost URLs, bare paths (``products/x.html``, ``/index.html``) and
     ``localhost:8000/...`` without a scheme. Raises ``BrowseError`` for any other host or scheme.
+    Any ``user@`` part is dropped, so it never reaches the ``Page:`` line or ``Chunk.url``.
     """
     url = url.strip()
     if not url:
@@ -60,22 +61,32 @@ def normalize_url(url: str, base: str = BASE_URL) -> str:
     parts = urlsplit(absolute)
     if parts.scheme != "http" or parts.hostname not in LOCAL_HOSTS:
         raise BrowseError(f"Cannot open {url}: only pages on {BASE_URL} are available.")
-    return absolute
+    try:
+        port = parts.port
+    except ValueError:
+        raise BrowseError(f"Cannot open {url}: invalid port.") from None
+    netloc = parts.hostname + (f":{port}" if port is not None else "")
+    return urlunsplit((parts.scheme, netloc, parts.path or "/", parts.query, parts.fragment))
 
 
 def resolve_path(url: str, root: Path | None = None) -> Path:
     """Map a localhost URL to a page file inside the sandbox root."""
     root = (root or sandbox_root()).resolve()
     rel = unquote(urlsplit(url).path).lstrip("/")
-    path = (root / rel).resolve()
-    if not path.is_relative_to(root):
-        raise BrowseError(f"Cannot open {url}: outside the site.")
-    if path.is_dir():
-        path = path / "index.html"
-    if path.suffix.lower() not in PAGE_SUFFIXES:
-        raise BrowseError(f"Cannot open {url}: not a web page.")
-    if not path.is_file():
-        raise BrowseError(f"Page not found: {url}")
+    try:
+        path = (root / rel).resolve()
+        if not path.is_relative_to(root):
+            raise BrowseError(f"Cannot open {url}: outside the site.")
+        if path.is_dir():
+            path = path / "index.html"
+        if path.suffix.lower() not in PAGE_SUFFIXES:
+            raise BrowseError(f"Cannot open {url}: not a web page.")
+        if not path.is_file():
+            raise BrowseError(f"Page not found: {url}")
+    except BrowseError:
+        raise
+    except (ValueError, OSError):  # e.g. a null byte (%00) or a name the OS rejects
+        raise BrowseError(f"Cannot open {url}: invalid path.") from None
     return path
 
 
@@ -129,7 +140,12 @@ def render(page_url: str, chunks: list[Chunk]) -> str:
 
 
 def browse(url: str, on_chunks: ChunkHook | None = None, root: Path | None = None) -> str:
-    """Open a sandbox page and return what the model may see. Errors come back as text."""
+    """Open a sandbox page and return what the model may see.
+
+    A bad URL comes back as a short text message. An exception raised by ``on_chunks`` (for
+    example, Decider unreachable) is deliberately not caught: the tool call fails and the model
+    gets no page text at all, rather than text the guardrail did not check (fail closed).
+    """
     try:
         page_url = normalize_url(url)
         chunks = fetch_chunks(page_url, root)
