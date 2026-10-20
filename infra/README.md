@@ -35,7 +35,15 @@ terraform -chdir=infra plan -out=tfplan
 terraform -chdir=infra apply tfplan
 ```
 
-`backend.hcl`, `terraform.tfvars` and the bootstrap's local state are git-ignored. The budget sends a confirmation email to `budget_email` first; accept it, or the alerts never arrive.
+`backend.hcl`, `terraform.tfvars`, `tfplan` and the bootstrap's local state are git-ignored.
+
+## Verify
+
+```bash
+AWS_PROFILE=phishguard AWS_REGION=us-east-1 uv run python infra/verify_permissions.py
+```
+
+It asks the IAM policy simulator 17 questions about the agent role and a developer: the two Claude models are allowed through their profiles, and any other model, direct model access without a profile, S3, creating users or access keys, and changing someone else's password are denied. Nothing is invoked, so it costs nothing.
 
 ## Give a teammate access
 
