@@ -31,6 +31,8 @@ class DeciderResponse:
     input_tokens: int
     latency_ms: float | None
     """Server-side latency as reported by the server, excluding HTTP overhead."""
+    model: str | None = None
+    """The checkpoint that answered, as the server names it."""
 
 
 class DeciderClient:
@@ -74,6 +76,7 @@ class DeciderClient:
             answers=payload["answers"],
             input_tokens=payload.get("usage", {}).get("input_tokens", 0),
             latency_ms=payload.get("latency_ms"),
+            model=payload.get("model"),
         )
 
     def health(self) -> dict[str, Any]:
