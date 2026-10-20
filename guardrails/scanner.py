@@ -41,20 +41,27 @@ class ScanPolicy:
     """When a chunk is flagged.
 
     A chunk is flagged when it instructs an AI and also asks for user data or claims authority:
-    on its own, `instructs_ai` also fires on benign text about AI assistants. Text no reader
-    sees (``hidden`` or ``metadata``) gets a lower bar for the instruction, because on the dev
-    set injected meta and JSON-LD text scored only 0.39 to 0.42 on `instructs_ai`.
+    a moderate `instructs_ai` also fires on benign text about AI assistants (0.79 to 0.81). Text
+    no reader sees (``hidden`` or ``metadata``) gets a lower bar for the instruction, because on
+    the dev set injected meta and JSON-LD text scored only 0.39 to 0.42 on `instructs_ai`.
 
-    The thresholds are provisional, picked on the dev set (docs/questions.md). Threshold
-    calibration on the labeled dataset replaces them.
+    A very confident `instructs_ai` flags on its own. That catches instructions that neither ask
+    for data nor claim authority (add items to the cart, mislead the user), which scored 0.91 to
+    0.96, while no benign text we have reached 0.9 (highest 0.81, over 113 distinct texts).
+
+    The thresholds are provisional, picked on the dev set (docs/questions.md) and the sandbox
+    pages. Threshold calibration on the labeled dataset replaces them.
     """
 
     instructs_ai: float = 0.5
     instructs_ai_unseen: float = 0.35
+    instructs_ai_alone: float = 0.9
     requests_user_data: float = 0.5
     claims_authority: float = 0.5
 
     def flags(self, chunk: Chunk, p: dict[str, float]) -> bool:
+        if p["instructs_ai"] >= self.instructs_ai_alone:
+            return True
         bar = self.instructs_ai if chunk.visibility == "visible" else self.instructs_ai_unseen
         return p["instructs_ai"] >= bar and (
             p["requests_user_data"] >= self.requests_user_data
@@ -121,15 +128,19 @@ class ChunkScanner:
     def scan(self, chunk: Chunk) -> Chunk:
         """Return the chunk the model may see: the original, or the quarantine notice."""
         text = deobfuscate(chunk.text)
-        cached = text in self._cache
-        if not cached:
+        with self._lock:
+            answers = self._cache.get(text)
+        cached = answers is not None
+        if answers is None:
+            # Ask outside the lock so a slow request doesn't block other scans.
             response = self.client.ask(chunk_state(text), CHUNK_QUESTIONS)
-            self._cache[text] = _Answers(
+            answers = _Answers(
                 probabilities={k: a["noul"] for k, a in response.answers.items()},
                 model=response.model or "strands-decider",
                 latency_ms=response.latency_ms,
             )
-        answers = self._cache[text]
+            with self._lock:
+                answers = self._cache.setdefault(text, answers)
 
         flagged = self.policy.flags(chunk, answers.probabilities)
         action = Action(
