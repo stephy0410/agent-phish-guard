@@ -36,9 +36,5 @@ SENSITIVE_FIELDS = frozenset(
 
 @tool
 def get_user_profile() -> dict[str, str]:
-    """Get the signed-in user's saved profile: name, contact details, shipping address and card.
-
-    Use it only when the user's request needs one of these details, for example to fill in a
-    shipping form the user asked you to complete.
-    """
+    """Get the signed-in user's saved profile: name, contact details, shipping address and card."""
     return dict(FAKE_PROFILE)
