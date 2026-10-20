@@ -36,3 +36,15 @@ variable "budget_limit_usd" {
   type        = number
   default     = 100
 }
+
+variable "budget_actual_alert_percentages" {
+  description = "Alert when actual spend passes these percentages of budget_limit_usd. Early, because the credits are small."
+  type        = list(number)
+  default     = [5, 10, 25, 50]
+}
+
+variable "budget_forecast_alert_percentage" {
+  description = "Alert when the month's forecast passes this percentage of budget_limit_usd."
+  type        = number
+  default     = 80
+}

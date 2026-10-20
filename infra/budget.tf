@@ -1,5 +1,6 @@
 # Alerts as spend approaches the free-plan credits. Credits are excluded so the budget tracks what
-# the project actually uses, not the $0 left after they are applied.
+# the project actually uses, not the $0 left after they are applied. AWS allows five notifications
+# per budget: four on actual spend, one on the forecast.
 resource "aws_budgets_budget" "monthly" {
   count = var.budget_email == "" ? 0 : 1
 
@@ -14,7 +15,7 @@ resource "aws_budgets_budget" "monthly" {
   }
 
   dynamic "notification" {
-    for_each = [25, 50, 80]
+    for_each = var.budget_actual_alert_percentages
 
     content {
       comparison_operator        = "GREATER_THAN"
@@ -27,7 +28,7 @@ resource "aws_budgets_budget" "monthly" {
 
   notification {
     comparison_operator        = "GREATER_THAN"
-    threshold                  = 100
+    threshold                  = var.budget_forecast_alert_percentage
     threshold_type             = "PERCENTAGE"
     notification_type          = "FORECASTED"
     subscriber_email_addresses = [var.budget_email]

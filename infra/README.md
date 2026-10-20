@@ -9,7 +9,7 @@ Terraform for the AWS side of Agent Phish Guard. Everything here is least privil
 | `agent-phish-guard-bedrock-invoke` policy | Invoke only the Claude models the agent uses (`bedrock_inference_profiles`), and only through their cross-region inference profiles. Terraform reads each profile from AWS to get the exact regional model ARNs behind it, so there are no wildcards. |
 | `agent-phish-guard-agent` role | For the compute that runs the agent (EC2 by default, see `agent_trusted_services`). Its only permission is the invoke policy. |
 | `phishguard-developers` group, users `ale` and `hannah` | Teammates calling Bedrock from their laptops: the invoke policy, read-only model listing, and managing their own password and MFA. No access keys. |
-| `agent-phish-guard-monthly` budget | Email alerts at 25%, 50% and 80% of the $100 free-plan credits, and when the forecast passes 100%. Credits are excluded so the budget tracks real usage. Created only if `budget_email` is set. |
+| `agent-phish-guard-monthly` budget | Email alerts early, because the free-plan credits are only $100: when actual spend passes $5, $10, $25 and $50, and when the month's forecast passes $80 (AWS allows five alerts per budget). Credits are excluded so the budget tracks real usage. Billing data updates a few times a day, so an alert can lag by several hours. Created only if `budget_email` is set. |
 | State bucket (`bootstrap/`) | S3 bucket for the Terraform state: versioned, encrypted, public access blocked, HTTPS only, with S3 native locking. The state never lives in the repo. |
 
 Not managed here: the `stephy` admin user and the `phishguard-admins` group, created by hand to run Terraform.
