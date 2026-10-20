@@ -70,6 +70,12 @@ resource "aws_iam_role_policy_attachment" "agent_bedrock_invoke" {
   policy_arn = aws_iam_policy.bedrock_invoke.arn
 }
 
+# Lets an EC2 instance take the role. Free, and harmless if the agent never runs on EC2.
+resource "aws_iam_instance_profile" "agent" {
+  name = "agent-phish-guard-agent"
+  role = aws_iam_role.agent.name
+}
+
 # --------------------------------------------------------------------------- developers
 
 # Teammates get the same invoke permission plus read-only model listing and what they need to
@@ -131,6 +137,14 @@ resource "aws_iam_group_policy_attachment" "developers_bedrock_invoke" {
 resource "aws_iam_group_policy_attachment" "developers_self_service" {
   group      = aws_iam_group.developers.name
   policy_arn = aws_iam_policy.developer_self_service.arn
+}
+
+# `aws login` turns a console session into CLI credentials through AWS Sign-in's OAuth2 flow,
+# which needs signin:AuthorizeOAuth2Access and signin:CreateOAuth2Token. This AWS managed
+# policy grants exactly those, for public OAuth2 clients only.
+resource "aws_iam_group_policy_attachment" "developers_cli_sign_in" {
+  group      = aws_iam_group.developers.name
+  policy_arn = "arn:aws:iam::aws:policy/SignInLocalDevelopmentAccess"
 }
 
 resource "aws_iam_user" "developer" {

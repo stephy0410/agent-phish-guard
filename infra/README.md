@@ -7,8 +7,8 @@ Terraform for the AWS side of Agent Phish Guard. Everything here is least privil
 | Resource | Purpose |
 | --- | --- |
 | `agent-phish-guard-bedrock-invoke` policy | Invoke only the Claude models the agent uses (`bedrock_inference_profiles`), and only through their cross-region inference profiles. Terraform reads each profile from AWS to get the exact regional model ARNs behind it, so there are no wildcards. |
-| `agent-phish-guard-agent` role | For the compute that runs the agent (EC2 by default, see `agent_trusted_services`). Its only permission is the invoke policy. |
-| `phishguard-developers` group, users `ale` and `hannah` | Teammates calling Bedrock from their laptops: the invoke policy, read-only model listing, and managing their own password and MFA. No access keys. |
+| `agent-phish-guard-agent` role and instance profile | For the compute that runs the agent (EC2 by default, see `agent_trusted_services`; launch the instance with the `agent-phish-guard-agent` instance profile). Its only permission is the invoke policy. |
+| `phishguard-developers` group, users `ale` and `hannah` | Teammates calling Bedrock from their laptops: the invoke policy, read-only model listing, managing their own password and MFA, and `aws login` (AWS's `SignInLocalDevelopmentAccess` policy, which turns a console session into CLI credentials). No access keys. |
 | `agent-phish-guard-monthly` budget | Email alerts early, because the free-plan credits are only $100: when actual spend passes $5, $10, $25 and $50, and when the month's forecast passes $80 (AWS allows five alerts per budget). Credits are excluded so the budget tracks real usage. Billing data updates a few times a day, so an alert can lag by several hours. Created only if `budget_email` is set. |
 | State bucket (`bootstrap/`) | S3 bucket for the Terraform state: versioned, encrypted, public access blocked, HTTPS only, with S3 native locking. The state never lives in the repo. |
 
@@ -37,13 +37,15 @@ terraform -chdir=infra apply tfplan
 
 `backend.hcl`, `terraform.tfvars`, `tfplan` and the bootstrap's local state are git-ignored.
 
+**First use of a model:** the first call to an Anthropic model on Bedrock subscribes the account through AWS Marketplace, which needs `aws-marketplace` permissions that the role and the group deliberately lack. An admin has already called Haiku 4.5 and Opus 4.6 on this account (`aws bedrock get-foundation-model-availability` shows them `AUTHORIZED`). If you add a model to `bedrock_inference_profiles`, invoke it once as an admin first.
+
 ## Verify
 
 ```bash
 AWS_PROFILE=phishguard AWS_REGION=us-east-1 uv run python infra/verify_permissions.py
 ```
 
-It asks the IAM policy simulator 17 questions about the agent role and a developer: the two Claude models are allowed through their profiles, and any other model, direct model access without a profile, S3, creating users or access keys, and changing someone else's password are denied. Nothing is invoked, so it costs nothing.
+It asks the IAM policy simulator 20 questions about the agent role and a developer: the two Claude models are allowed through their profiles, a developer can use `aws login`, and any other model, direct model access without a profile, S3, creating users or access keys, changing someone else's password and signing in as the role are denied. Nothing is invoked, so it costs nothing.
 
 ## Give a teammate access
 

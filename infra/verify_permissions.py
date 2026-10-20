@@ -35,6 +35,8 @@ def main() -> int:
         return [_context("bedrock:InferenceProfileArn", profile_arn)]
 
     as_ale = [_context("aws:username", "ale")]
+    # The OAuth2 client `aws login` signs in through.
+    cli_client = f"arn:aws:signin:{REGION}:{account}:oauth2/public-client/localhost"
 
     cases = [
         # (description, principal, action, resource, context, expected)
@@ -111,6 +113,9 @@ def main() -> int:
         ),
         ("ale: create an access key", ale, "iam:CreateAccessKey", ale, as_ale, False),
         ("ale: attach a policy to self", ale, "iam:AttachUserPolicy", ale, as_ale, False),
+        ("ale: aws login, authorize", ale, "signin:AuthorizeOAuth2Access", cli_client, [], True),
+        ("ale: aws login, get CLI token", ale, "signin:CreateOAuth2Token", cli_client, [], True),
+        ("role: aws login", role, "signin:CreateOAuth2Token", cli_client, [], False),
     ]
 
     failures = 0

@@ -27,3 +27,8 @@ output "budget_name" {
   description = "Budget name, or null when budget_email is empty."
   value       = one(aws_budgets_budget.monthly[*].name)
 }
+
+output "agent_instance_profile" {
+  description = "Instance profile to launch the agent's EC2 instance with."
+  value       = aws_iam_instance_profile.agent.name
+}
