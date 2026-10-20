@@ -63,6 +63,7 @@ def test_ask_sends_state_and_questions(server_url):
     assert response.answers["q"]["noul"] == 0.9
     assert response.input_tokens == 42
     assert response.latency_ms == 12.5
+    assert response.model == "fake"
 
 
 def test_health(server_url):

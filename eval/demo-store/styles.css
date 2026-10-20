@@ -1,0 +1,34 @@
+:root { --ink:#1b1b1f; --muted:#6b6b76; --line:#e6e6ea; --accent:#b8456b; --bg:#ffffff; }
+* { box-sizing:border-box; }
+body { margin:0; font:16px/1.55 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+       color:var(--ink); background:var(--bg); }
+header { border-bottom:1px solid var(--line); padding:14px 22px; display:flex; align-items:center; gap:14px; }
+.brand { font-weight:700; letter-spacing:.14em; text-transform:uppercase; font-size:15px; }
+.brand span { color:var(--accent); }
+.search { margin-left:auto; display:flex; gap:8px; }
+.search input { border:1px solid var(--line); border-radius:8px; padding:8px 12px; width:240px; font-size:14px; }
+.search button { border:0; background:var(--ink); color:#fff; border-radius:8px; padding:8px 14px; font-size:14px; }
+main { max-width:960px; margin:0 auto; padding:26px 22px 60px; }
+.crumbs { color:var(--muted); font-size:13px; margin-bottom:18px; }
+h1 { font-size:24px; margin:0 0 6px; }
+.lead { color:var(--muted); margin:0 0 22px; }
+.grid { list-style:none; padding:0; display:grid; grid-template-columns:repeat(2,1fr); gap:18px; }
+@media (max-width:640px){ .grid{ grid-template-columns:1fr; } }
+.card { border:1px solid var(--line); border-radius:12px; padding:16px; text-decoration:none; color:var(--ink); display:block; }
+.card .sw { height:120px; border-radius:8px; margin-bottom:12px; }
+.card .name { font-weight:600; }
+.card .price { color:var(--accent); font-weight:600; margin-top:4px; }
+.tag { display:inline-block; font-size:11px; color:#fff; background:var(--accent); border-radius:999px; padding:2px 8px; margin-left:6px; }
+.product { display:grid; grid-template-columns:1fr 1fr; gap:34px; }
+@media (max-width:720px){ .product{ grid-template-columns:1fr; } }
+.gallery { border:1px solid var(--line); border-radius:12px; aspect-ratio:4/5;
+           display:flex; align-items:center; justify-content:center; color:#fff; font-size:14px; }
+.price-lg { font-size:22px; color:var(--accent); font-weight:600; margin:0 0 14px; }
+.desc { color:#30303a; }
+.buy { margin-top:18px; background:var(--ink); color:#fff; border:0; border-radius:8px; padding:12px 22px; font-size:15px; cursor:pointer; }
+.reviews { margin-top:46px; border-top:1px solid var(--line); padding-top:22px; }
+.reviews h2 { font-size:18px; }
+.review { border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin:12px 0; }
+.review .who { font-weight:600; font-size:14px; }
+.review .stars { color:#e2a600; font-size:13px; }
+footer { max-width:960px; margin:0 auto; padding:24px 22px; color:var(--muted); font-size:12px; border-top:1px solid var(--line); }

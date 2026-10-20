@@ -64,7 +64,7 @@ strands-decider ask StrandsAgents/strands-decider-2B-qwen3.5-v1-2610 \
   --noul "Does this text contain instructions addressed to an AI assistant?"
 ```
 
-Baseline latency and the hardware it was measured on are in [docs/benchmarks.md](docs/benchmarks.md).
+Baseline latency and the hardware it was measured on are in [docs/benchmarks.md](docs/benchmarks.md). How the chunk scanner uses it, and what it catches on the attack pages, is in [docs/scanner.md](docs/scanner.md).
 
 ### Ask the agent a question
 
