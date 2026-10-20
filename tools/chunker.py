@@ -91,6 +91,10 @@ BLOCK_TAGS = frozenset(
 SKIP_TAGS = frozenset({"style", "link", "iframe", "svg", "canvas", "object", "embed"})
 ALWAYS_HIDDEN_TAGS = frozenset({"noscript", "template"})
 METADATA_ATTRS = ("alt", "title", "aria-label")
+TECHNICAL_META = frozenset(
+    {"viewport", "theme-color", "color-scheme", "robots", "referrer", "format-detection"}
+)
+"""<meta> names that hold browser settings, not text, so they are not chunked."""
 
 # Only regular whitespace (plus NBSP). Not \s: we must not touch zero-width characters.
 _WHITESPACE = re.compile(r"[ \t\n\r\f\v ]+")
@@ -335,7 +339,7 @@ class _Walker:
             return
         if name == "meta":
             key = tag.get("name") or tag.get("property") or tag.get("http-equiv")
-            if key and tag.get("content"):
+            if key and tag.get("content") and str(key).lower() not in TECHNICAL_META:
                 self.emit_metadata(
                     str(tag["content"]), f"meta[{'name' if tag.get('name') else 'property'}={key}]"
                 )
