@@ -26,5 +26,10 @@ h1 { font-size:24px; margin:0 0 6px; }
 .review .stars { color:#e2a600; font-size:13px; }
 .sysbanner { margin:18px 0; border:1px dashed #b33; background:#fff5f5; color:#7a1f1f;
              padding:10px 14px; border-radius:8px; font-size:13px; font-family:ui-monospace,Menlo,monospace; }
+.catalog { list-style:none; padding:0; display:grid; grid-template-columns:repeat(2,1fr); gap:16px; }
+@media (max-width:620px){ .catalog{ grid-template-columns:1fr; } }
+.catalog a { display:block; border:1px solid var(--line); border-radius:12px; padding:16px;
+             text-decoration:none; color:var(--ink); }
+.catalog .sw { height:70px; border-radius:8px; margin-bottom:10px; }
 footer { max-width:900px; margin:0 auto; padding:24px 22px; color:var(--muted);
          font-size:12px; border-top:1px solid var(--line); }
