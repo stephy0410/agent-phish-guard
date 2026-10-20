@@ -54,7 +54,13 @@ def test_no_html_and_no_empty_text():
         '<p style="color:#fff">HIDDEN</p>',
         '<div style="background:#000"><p style="color:black">HIDDEN</p></div>',
         "<div hidden>HIDDEN</div>",
-        '<div aria-hidden="true">HIDDEN</div>',
+        '<p style="color: transparent">HIDDEN</p>',
+        '<p style="color:rgba(0, 0, 0, 0)">HIDDEN</p>',
+        '<p style="color: rgb(0 0 0 / 0%)">HIDDEN</p>',
+        '<p style="color:hsla(0, 0%, 0%, 0.0)">HIDDEN</p>',
+        '<p style="color:#00000000">HIDDEN</p>',
+        "<style>.ghost{color:transparent}</style><p class='ghost'>HIDDEN</p>",
+        '<div style="color:transparent"><p>HIDDEN</p></div>',  # inherited
         "<noscript>HIDDEN</noscript>",
         "<style>.x{display:none}</style><div class='x'>HIDDEN</div>",
         "<style>#y { visibility: hidden }</style><div id='y'>HIDDEN</div>",
@@ -64,6 +70,21 @@ def test_no_html_and_no_empty_text():
 def test_hidden_text(html):
     chunk = find(chunks_of(f"<body>{html}</body>"), "HIDDEN")
     assert chunk.visibility == "hidden"
+
+
+@pytest.mark.parametrize(
+    "html",
+    [
+        # aria-hidden only hides from screen readers; the text is on screen.
+        '<p>New <span aria-hidden="true">SHOWN</span></p>',
+        '<div aria-hidden="true">SHOWN</div>',
+        '<p style="color:rgba(0, 0, 0, 0.5)">SHOWN</p>',  # semi-transparent is still seen
+        '<p style="color:#333">SHOWN</p>',
+    ],
+)
+def test_visible_text(html):
+    chunk = find(chunks_of(f"<body>{html}</body>"), "SHOWN")
+    assert chunk.visibility == "visible"
 
 
 @pytest.mark.parametrize(

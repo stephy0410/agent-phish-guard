@@ -6,8 +6,9 @@ its visibility:
 
 - ``visible``: text a person sees on the rendered page.
 - ``hidden``: body text that is not shown (display:none, visibility:hidden, opacity:0,
-  font-size:0, zero size, off-screen, the ``hidden`` attribute, aria-hidden, or text colored
-  like its background).
+  font-size:0, zero size, off-screen, the ``hidden`` attribute, a transparent text color, or
+  text colored like its background). ``aria-hidden`` does not count: that text is on screen,
+  only screen readers skip it.
 - ``metadata``: never body text (comments, alt/title/aria-label attributes, <title>, <meta>,
   JSON-LD).
 
@@ -195,6 +196,35 @@ def normalize_color(value: str | None) -> str | None:
     return None
 
 
+def is_transparent(value: str | None) -> bool:
+    """True for ``transparent``, ``rgba(..., 0)``, ``hsla(..., 0)``, ``#rrggbb00`` and ``#rgb0``.
+
+    ``normalize_color`` returns None for these, which would make the element inherit its
+    parent's color, so transparent text has to be checked on its own.
+    """
+    if not value:
+        return False
+    value = value.strip().lower()
+    if value == "transparent":
+        return True
+    if re.fullmatch(r"#[0-9a-f]{3}0|#[0-9a-f]{6}00", value):
+        return True
+    m = re.fullmatch(r"(?:rgb|hsl)a?\((.*)\)", value)
+    if not m:
+        return False
+    # Alpha is the 4th comma-separated value, or what follows "/" in the space syntax.
+    inner = m.group(1)
+    parts = inner.split("/") if "/" in inner else inner.split(",")
+    if len(parts) not in (2, 4):
+        return False
+    alpha = parts[-1].strip()
+    try:
+        number = float(alpha[:-1]) / 100 if alpha.endswith("%") else float(alpha)
+    except ValueError:
+        return False
+    return number <= 0.01
+
+
 def background_color(decls: dict[str, str]) -> str | None:
     if "background-color" in decls:
         return normalize_color(decls["background-color"])
@@ -214,7 +244,8 @@ def _length(value: str | None) -> float | None:
 
 def hides_element(decls: dict[str, str], tag: Tag) -> bool:
     """True if these styles or attributes keep the element from being seen."""
-    if tag.has_attr("hidden") or str(tag.get("aria-hidden", "")).lower() == "true":
+    # aria-hidden is deliberately not here: it hides text from screen readers, not from eyes.
+    if tag.has_attr("hidden") or is_transparent(decls.get("color")):
         return True
     if decls.get("display") == "none" or decls.get("visibility") in ("hidden", "collapse"):
         return True
