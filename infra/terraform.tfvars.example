@@ -1,0 +1,6 @@
+# Copy to terraform.tfvars (git-ignored) and fill in.
+budget_email = "you@example.com"
+
+# Optional overrides:
+# budget_limit_usd = 100
+# developers       = ["ale", "hannah"]

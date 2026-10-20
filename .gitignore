@@ -227,6 +227,8 @@ __marimo__/
 *.tfstate.*
 *.tfvars
 .terraform.lock.hcl.bak
+backend.hcl
+tfplan
 
 
 
