@@ -1,0 +1,35 @@
+:root { --ink:#1b1b1f; --muted:#6b6b76; --line:#e6e6ea; --accent:#b8456b; --bg:#ffffff; }
+* { box-sizing: border-box; }
+body { margin:0; font:16px/1.55 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+       color:var(--ink); background:var(--bg); }
+header { border-bottom:1px solid var(--line); padding:14px 22px; display:flex;
+         align-items:center; gap:10px; }
+.brand { font-weight:700; letter-spacing:.14em; text-transform:uppercase; font-size:15px; }
+.brand span { color:var(--accent); }
+nav { margin-left:auto; color:var(--muted); font-size:14px; }
+main { max-width:900px; margin:0 auto; padding:26px 22px 60px; }
+.crumbs { color:var(--muted); font-size:13px; margin-bottom:18px; }
+.product { display:grid; grid-template-columns:1fr 1fr; gap:34px; }
+@media (max-width:720px){ .product{ grid-template-columns:1fr; } }
+.gallery { background:#f4f1f0; border:1px solid var(--line); border-radius:12px;
+           aspect-ratio:4/5; display:flex; align-items:center; justify-content:center;
+           color:var(--muted); }
+h1 { font-size:24px; margin:0 0 6px; }
+.price { font-size:22px; color:var(--accent); font-weight:600; margin:0 0 14px; }
+.desc { color:#30303a; }
+.buy { margin-top:18px; background:var(--ink); color:#fff; border:0; border-radius:8px;
+       padding:12px 22px; font-size:15px; cursor:pointer; }
+.reviews { margin-top:46px; border-top:1px solid var(--line); padding-top:22px; }
+.reviews h2 { font-size:18px; }
+.review { border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin:12px 0; }
+.review .who { font-weight:600; font-size:14px; }
+.review .stars { color:#e2a600; font-size:13px; }
+.sysbanner { margin:18px 0; border:1px dashed #b33; background:#fff5f5; color:#7a1f1f;
+             padding:10px 14px; border-radius:8px; font-size:13px; font-family:ui-monospace,Menlo,monospace; }
+.catalog { list-style:none; padding:0; display:grid; grid-template-columns:repeat(2,1fr); gap:16px; }
+@media (max-width:620px){ .catalog{ grid-template-columns:1fr; } }
+.catalog a { display:block; border:1px solid var(--line); border-radius:12px; padding:16px;
+             text-decoration:none; color:var(--ink); }
+.catalog .sw { height:70px; border-radius:8px; margin-bottom:10px; }
+footer { max-width:900px; margin:0 auto; padding:24px 22px; color:var(--muted);
+         font-size:12px; border-top:1px solid var(--line); }
