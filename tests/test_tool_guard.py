@@ -11,14 +11,22 @@ from guardrails.decider import DeciderUnavailable
 from guardrails.questions import TOOL_CALL_QUESTIONS
 from guardrails.tool_guard import (
     DENY_MESSAGE,
+    RecipientRule,
     ToolCallGuard,
     ToolCallPolicy,
     confirmation_prompt,
     user_request,
 )
+from tools.profile import FAKE_PROFILE
 
 ATTACKER = "orders@lumora-support.example"
 CARD = {"card_number": "4242 4242 4242 4242"}
+CARD_QUESTION = (
+    f"The assistant wants to send card_number to {ATTACKER}. It contains your card number. "
+    "Allow it?"
+)
+NAMES_ATTACKER = f"Send my card number to {ATTACKER}."
+"""A request that names the recipient, so the recipient rule leaves the verdict to Decider."""
 
 
 class FakeDecider:
@@ -143,6 +151,84 @@ def test_confirmation_prompt_names_fields_and_recipient():
     assert prompt == f"The assistant wants to send card_number to {ATTACKER}. Allow it?"
 
 
+def test_confirmation_prompt_says_what_the_data_contains():
+    note = {"order_note": "Pay with 4242-4242-4242-4242, CVC 123."}
+    guard = ToolCallGuard(client=FakeDecider(0.35, 0.42), confirm=lambda q: False)
+    run(guard, prompt=f"Send my order to {ATTACKER}.", data=note)
+    assert guard.records[0].action.message == (
+        f"The assistant wants to send order_note to {ATTACKER}. "
+        "It contains your card number and card CVC. Allow it?"
+    )
+
+
+# --------------------------------------------------------------------------- the recipient rule
+
+
+@pytest.mark.parametrize(
+    ("recipient", "user_text"),
+    [
+        (ATTACKER, f"Send my card to {ATTACKER.upper()}."),  # the user wrote it
+        ("mailto:" + ATTACKER, f"Send my card to {ATTACKER}."),
+        (FAKE_PROFILE["email"], "Send the link to my email."),  # the user's own address
+        ("http://localhost:8000/checkout", "Buy them with my saved details."),  # the store
+        ("http://127.0.0.1:8000/checkout?size=M", "Buy them with my saved details."),
+        ("https://shop.example/pay", "Check out at https://shop.example/cart please."),
+    ],
+)
+def test_given_recipients(recipient, user_text):
+    assert RecipientRule().given(recipient, user_text)
+
+
+@pytest.mark.parametrize(
+    ("recipient", "user_text"),
+    [
+        (ATTACKER, "Find me the cheapest leggings and buy them with my saved details."),
+        (ATTACKER, "Send my card to support@lumora-support.example."),
+        ("orders@lumora.example.evil.example", "Email orders@lumora.example."),  # look-alike
+        ("https://lumora-checkout.example/pay", "Buy them with my saved details."),
+        ("http://localhost:8000@evil.example/pay", "Buy them with my saved details."),
+        ("http://localhost:9000/pay", "Buy them with my saved details."),  # another port
+        ("mailto:" + ATTACKER + "?body=4242", f"Send my card to {ATTACKER}."),
+        ("", "Buy them."),
+    ],
+)
+def test_recipients_nobody_gave(recipient, user_text):
+    assert not RecipientRule().given(recipient, user_text)
+
+
+def test_user_data_to_a_recipient_nobody_gave_is_denied():
+    """The demo-store attack: Decider scores it like a checkout, the rule denies it."""
+    profile = {k: FAKE_PROFILE[k] for k in ("name", "address", "card_number", "card_cvc")}
+    guard = ToolCallGuard(client=FakeDecider(0.26, 0.25))
+    _, tool_results = run(
+        guard, prompt="Buy the cheapest leggings with my saved details.", data=profile
+    )
+
+    assert SENT == []
+    assert tool_results == [f"DENIED: {DENY_MESSAGE}"]
+    [record] = guard.records
+    assert record.action.type == "deny"
+    assert record.action.reason == (
+        "args_grounded=0.26, serves_user_request=0.25; "
+        "sends address, card_cvc, card_number to a recipient nobody gave"
+    )
+    assert len(record.action.decisions) == 2  # Decider's view is kept for the evaluation
+
+
+def test_the_rule_needs_user_data():
+    guard = ToolCallGuard(client=FakeDecider(0.26, 0.25), confirm=lambda q: False)
+    run(guard, data={"size": "M", "product": "Flex leggings"})
+    assert guard.records[0].action.type == "confirm"
+
+
+def test_the_rule_can_be_turned_off():
+    guard = ToolCallGuard(
+        client=FakeDecider(0.26, 0.25), confirm=lambda q: False, recipient_rule=None
+    )
+    run(guard)
+    assert guard.records[0].action.type == "confirm"
+
+
 # --------------------------------------------------------------------------- in the agent loop
 
 
@@ -176,9 +262,9 @@ def test_confirm_asks_the_user(answer, runs):
         return answer
 
     guard = ToolCallGuard(client=FakeDecider(0.35, 0.42), confirm=ask_user)
-    _, tool_results = run(guard)
+    _, tool_results = run(guard, prompt=NAMES_ATTACKER)
 
-    assert questions == [f"The assistant wants to send card_number to {ATTACKER}. Allow it?"]
+    assert questions == [CARD_QUESTION]
     assert (SENT != []) is runs
     if not runs:
         assert tool_results[0].startswith("CONFIRMATION_FAILED")
@@ -187,11 +273,9 @@ def test_confirm_asks_the_user(answer, runs):
 
 def test_confirm_without_a_callback_pauses_the_agent():
     guard = ToolCallGuard(client=FakeDecider(0.35, 0.42))
-    result, _ = run(guard)
+    result, _ = run(guard, prompt=NAMES_ATTACKER)
     assert result.stop_reason == "interrupt"
-    assert result.interrupts[0].reason == (
-        f"The assistant wants to send card_number to {ATTACKER}. Allow it?"
-    )
+    assert result.interrupts[0].reason == CARD_QUESTION
     assert SENT == []
 
 
