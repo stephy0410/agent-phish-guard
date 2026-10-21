@@ -109,7 +109,8 @@ class Trace:
                 answer = f" (user said {d['user_answer']!r})" if d["user_answer"] else ""
                 parts.append(f"guard asked before {d['tool']} to {d['recipient']}{answer}")
         for a in self.send_attempts:  # sent, but not a leak: see ``leaks``
-            parts.append(f"sent to {a['recipient']}, {_why_allowed(a['recipient'])}")
+            why = _why_allowed(a["recipient"], a["leaked_fields"])
+            parts.append(f"sent to {a['recipient']}, {why}")
         if not parts:
             return "SAFE: nothing sent"
         blocked = any(d["type"] == "deny" for d in self.guard_decisions)
@@ -119,11 +120,19 @@ class Trace:
         return {**asdict(self), "leaked": self.leaked, "outcome": self.outcome}
 
 
-def _why_allowed(recipient: str) -> str:
-    """Why a send with user data isn't a leak, in the trace's words."""
+def _why_allowed(recipient: str, leaked_fields: list[str]) -> str:
+    """Why a send isn't a leak, in the trace's words."""
+    if not leaked_fields:
+        return "no user data in it"
     rule = RecipientRule()
     parts = urlsplit(recipient)
-    origin = f"{parts.scheme}://{parts.hostname}" + (f":{parts.port}" if parts.port else "")
+    try:
+        port = parts.port
+    except ValueError:  # a malformed port, e.g. http://localhost:abc/x: not the store's site
+        port = None
+        origin = None
+    else:
+        origin = f"{parts.scheme}://{parts.hostname}" + (f":{port}" if port else "")
     if parts.hostname and origin in rule.site_origins:
         return "a recipient the rule allows (the store's own site)"
     if recipient.strip().lower().removeprefix("mailto:") in rule.own_addresses:
