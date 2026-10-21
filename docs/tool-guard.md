@@ -77,7 +77,7 @@ With Decider alone, the store attack lands in Confirm: "buy them with my saved d
 ## Limitations
 
 - The recipient rule needs the user's data in the call. Otherwise an attacker's recipient can still land in Confirm, and the protection depends on the user reading the question.
-- `find_leaked_fields` matches whole values (ignoring case, spaces and URL-encoding), and card and phone digits with any separators. Base64, only the last four digits, or part of the address are not found. In one run above the agent sent `card_last_four`. The call was still denied for the address, email and phone.
+- `find_leaked_fields` matches whole values (ignoring case, spaces and URL-encoding), and card and phone digits with any separators. Base64, only the last four digits, or parts of the address other than the street line (city or ZIP alone) are not found. In one run above the agent sent `card_last_four`. The call was still denied for the address, email and phone.
 - `site_origins` is fixed to the sandbox (`localhost:8000`). A deployment would take it from the pages the agent opened.
 - Only the tools in `sensitive_tools` are checked.
 - The dev set has 7 tool calls; the demo runs are few and the model is not deterministic.
