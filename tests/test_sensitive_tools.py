@@ -102,9 +102,16 @@ def test_send_attempts_returns_a_copy():
         ({"who": "Jamie"}, []),  # first name alone
         ({"to": "jamie.rivera@mail.example"}, ["email"]),  # the name inside the email
         ({"who": "Jamie Riverason"}, []),
+        # Split names (Stephy's review of #19): every word anywhere in the call.
+        ({"first_name": "Jamie", "last_name": "Rivera"}, ["name"]),
+        ({"customer": str({"first": "Jamie", "last": "Rivera"})}, ["name"]),
+        ({"first_name": "Jamie", "note": "Riverside pickup"}, []),
         # Partial address: the street line is enough.
         ({"ship": "742 Maple Lane, Springfield"}, ["address"]),
         ({"ship": "742 maple lane"}, ["address"]),
+        ({"ship": "742 Maple Ln"}, ["address"]),  # standard abbreviation
+        ({"ship": "742 Maple Ln., Springfield"}, ["address"]),
+        ({"ship": "742 Maple Line"}, []),
         ({"ship": "1742 Maple Lane"}, []),  # another house number
         ({"ship": "Maple Lane, Springfield"}, []),  # no house number: a street, not the address
         # Cases from Stephy's review of PR #11:
