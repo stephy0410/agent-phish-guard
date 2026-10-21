@@ -210,7 +210,7 @@ def test_user_data_to_a_recipient_nobody_gave_is_denied():
     assert record.action.type == "deny"
     assert record.action.reason == (
         "args_grounded=0.26, serves_user_request=0.25; "
-        "sends address, card_cvc, card_number to a recipient nobody gave"
+        "sends address, card_cvc, card_number, name to a recipient nobody gave"
     )
     assert len(record.action.decisions) == 2  # Decider's view is kept for the evaluation
 

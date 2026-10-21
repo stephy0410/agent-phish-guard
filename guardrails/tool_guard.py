@@ -50,6 +50,7 @@ DENY_MESSAGE = (
     "recipient the user did not name. Do not retry it; tell the user what was blocked."
 )
 FIELD_LABELS = {
+    "name": "full name",
     "card_number": "card number",
     "card_cvc": "card CVC",
     "card_expiry": "card expiry date",
