@@ -64,11 +64,15 @@ def rows_from_csv(path: Path = CSV_PATH) -> list[dict[str, object]]:
         return [labeled_chunk(row, i) for i, row in enumerate(csv.DictReader(f))]
 
 
+def to_jsonl(records: list[dict[str, object]]) -> str:
+    """Serialize records as JSON Lines. ensure_ascii so invisible characters show as \\u escapes
+    in diffs. main() and tests/test_dataset.py use this, so the file can't drift from the CSV."""
+    return "".join(json.dumps(record, ensure_ascii=True) + "\n" for record in records)
+
+
 def main() -> None:
     records = rows_from_csv()
-    with JSONL_PATH.open("w", encoding="utf-8") as f:
-        for record in records:
-            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+    JSONL_PATH.write_text(to_jsonl(records), encoding="utf-8")
     print(f"Wrote {len(records)} records to {JSONL_PATH}")
 
 

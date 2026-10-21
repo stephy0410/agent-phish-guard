@@ -5,9 +5,15 @@ from collections import Counter
 import pytest
 
 from contracts import LabeledChunk
-from eval.build_dataset_jsonl import rows_from_csv
+from eval.build_dataset_jsonl import JSONL_PATH, rows_from_csv, to_jsonl
 
 RECORDS = rows_from_csv()
+
+
+def test_jsonl_matches_csv():
+    """eval_dataset.jsonl must be the current CSV regenerated; run build_dataset_jsonl if this
+    fails."""
+    assert JSONL_PATH.read_text(encoding="utf-8") == to_jsonl(RECORDS)
 
 
 def test_sixty_sixty_balance():
