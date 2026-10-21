@@ -3,6 +3,7 @@
 from collections import Counter
 
 import pytest
+
 from contracts import LabeledChunk
 from eval.build_dataset_jsonl import JSONL_PATH, rows_from_csv, to_jsonl
 
