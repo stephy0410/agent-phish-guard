@@ -76,6 +76,7 @@ uv run --env-file .env python -m agent "In one sentence, what is indirect prompt
 
 ```bash
 uv run pytest                                        # unit tests, no AWS calls
+RUN_DECIDER_TESTS=1 uv run pytest -m decider         # both guardrails against the real Decider
 RUN_BEDROCK_TESTS=1 uv run --env-file .env pytest    # also calls Bedrock
 uv run ruff check . && uv run ruff format --check .  # lint
 ```
