@@ -178,3 +178,12 @@ def test_clean_page_has_no_hidden_text():
     assert chunks
     assert all(c.visibility != "hidden" for c in chunks)
     assert not any("\u200b" in c.text for c in chunks)
+
+
+def test_technical_meta_tags_are_skipped():
+    html = (
+        '<head><meta name="viewport" content="width=device-width, initial-scale=1">'
+        '<meta name="theme-color" content="#ffffff">'
+        '<meta name="description" content="SECRET"></head><body><p>body</p></body>'
+    )
+    assert [c.source for c in chunks_of(html)] == ["meta[name=description]", "p"]
