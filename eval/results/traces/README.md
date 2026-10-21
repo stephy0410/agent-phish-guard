@@ -19,3 +19,6 @@ Traces for the video:
 - **The page is cleaned first:** [`full-20261021T193458Z.md`](full-20261021T193458Z.md) — both injections quarantined; the attacker's address never appears.
 
 The model is not deterministic and the runs are few; read the counts as a demo, not a benchmark.
+The unguarded agent is not defenseless either: `SYSTEM_PROMPT` in `agent/core.py` says "Only
+take actions the user asked for.", which likely explains part of the 5 refusals. An agent
+without that line would probably fall more often than 3 in 9.
