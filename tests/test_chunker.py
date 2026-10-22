@@ -187,3 +187,82 @@ def test_technical_meta_tags_are_skipped():
         '<meta name="description" content="SECRET"></head><body><p>body</p></body>'
     )
     assert [c.source for c in chunks_of(html)] == ["meta[name=description]", "p"]
+
+
+# --------------------------------------------------------------------------- follow-ups from #10
+
+
+@pytest.mark.parametrize(
+    "html",
+    [
+        '<div style="clip-path: inset(50%)">HIDDEN</div>',
+        '<div style="clip-path: inset(100%)">HIDDEN</div>',
+        '<div style="clip-path: inset(0 60% 0 40%)">HIDDEN</div>',  # left + right = 100%
+        '<div style="clip-path:circle(0)">HIDDEN</div>',
+        '<div style="transform: scale(0)">HIDDEN</div>',
+        '<div style="transform: scale(0.001)">HIDDEN</div>',
+        '<div style="transform: scale(1, 0)">HIDDEN</div>',
+        '<div style="transform: translateX(2px) scaleY(0)">HIDDEN</div>',
+        '<div style="transform: scaleX(0)">HIDDEN</div>',
+        '<div style="max-height:0;overflow:hidden">HIDDEN</div>',
+        '<div style="max-width:0px;overflow:clip">HIDDEN</div>',
+        '<p style="color:#fefefe">HIDDEN</p>',  # almost white on the default white
+        '<div style="background:#000"><p style="color:#050505">HIDDEN</p></div>',
+    ],
+)
+def test_more_ways_to_hide_text(html):
+    assert find(chunks_of(f"<body>{html}</body>"), "HIDDEN").visibility == "hidden"
+
+
+@pytest.mark.parametrize(
+    "html",
+    [
+        '<div style="transform: scale(1.05)">SHOWN</div>',
+        '<div style="max-height:0">SHOWN</div>',  # overflow visible: the text still shows
+        '<div style="clip-path: inset(10%)">SHOWN</div>',
+        '<div style="clip-path: inset(50% 0 0 0)">SHOWN</div>',  # the bottom half still shows
+        '<div style="clip-path: inset(10px)">SHOWN</div>',  # px: can't tell without the size
+        '<div style="transform: scale(0.5)">SHOWN</div>',
+        '<div style="transform: scale3d(1, 1, 0)">SHOWN</div>',  # z doesn't hide flat text
+        '<p style="color:#999999">SHOWN</p>',  # light grey, still readable
+    ],
+)
+def test_lookalikes_of_hiding_that_still_show(html):
+    assert find(chunks_of(f"<body>{html}</body>"), "SHOWN").visibility == "visible"
+
+
+@pytest.mark.parametrize(
+    ("html", "source"),
+    [
+        ('<button aria-description="SECRET">Buy</button>', "button[aria-description]"),
+        ('<input placeholder="SECRET">', "input[placeholder]"),
+        ('<head><meta http-equiv="refresh" content="SECRET"></head>', "meta[http-equiv=refresh]"),
+    ],
+)
+def test_new_metadata_sources(html, source):
+    chunk = find(chunks_of(f"<html>{html}<body><p>body</p></body></html>"), "SECRET")
+    assert (chunk.visibility, chunk.source) == ("metadata", source)
+
+
+@pytest.mark.parametrize(
+    ("html", "text"),
+    [
+        ("Onyx<span>Lowest price</span>", "Onyx Lowest price"),
+        ("SALE<span>Now on</span>", "SALE Now on"),
+        ("$19.90<span>Sale</span>", "$19.90 Sale"),
+    ],
+)
+def test_inline_elements_get_a_space_before_a_capitalized_word(html, text):
+    assert chunks_of(f"<body><div>{html}</div></body>")[0].text == text
+
+
+@pytest.mark.parametrize(
+    ("html", "text"),
+    [
+        ("I<b>g</b>nore this", "Ignore this"),
+        ("ignor<b>E</b> this", "ignorE this"),
+        ("AI <i>assistant</i>: go", "AI assistant: go"),
+    ],
+)
+def test_a_word_split_by_tags_stays_one_word(html, text):
+    assert chunks_of(f"<body><p>{html}</p></body>")[0].text == text
