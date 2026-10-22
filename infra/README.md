@@ -55,9 +55,48 @@ Terraform creates the users without passwords, so no password ever lands in the 
 2. The teammate signs in at `https://<account-id>.signin.aws.amazon.com/console`, sets a new password and adds an MFA device (Security credentials → Assign MFA device).
 3. On their laptop: `aws login --profile phishguard --region us-east-1`, then the steps in the main README.
 
+## Compute: run the agent on EC2
+
+`compute/` is a separate stack with its own state, so destroying it leaves the IAM and the budget above alone. It creates:
+
+| Resource | Purpose |
+| --- | --- |
+| `m7i-flex.large` instance (Amazon Linux 2023, 2 vCPU, 8 GiB plus 4 GB of swap) | One of the types an AWS Free plan account can launch; on a paid plan, `-var instance_type=m7i.xlarge` is faster. Runs the agent and Decider 2B on CPU, with the `agent-phish-guard-agent` instance profile. Credentials come from the instance role over IMDSv2 (required); there are no keys. Decider is a systemd service on 127.0.0.1, run by a dedicated `phishguard` user. Encrypted gp3 disk, deleted with the instance. |
+| Security group | No inbound rules at all (no SSH, no open ports). Outbound HTTPS only. |
+| Source bucket | Private, encrypted, HTTPS only. Holds the committed code packaged with `git archive`, so `.env` and `*.tfvars` never leave the laptop. Emptied and deleted by destroy. |
+| Role additions | `AmazonSSMManagedInstanceCore` (Session Manager instead of SSH) and read access to the one source object. Both are attached to the agent role by this stack and removed by its destroy. |
+
+Cost: about $0.10 an hour for the instance, plus a few cents of disk and Bedrock calls. Safety net: the instance terminates itself 3 hours after boot (`auto_terminate_minutes`), even if nobody runs destroy.
+
+Speed, measured on 2026-10-22:
+- **First boot:** about 3 minutes until Decider answers.
+- **Per chunk:** on the `m7i-flex.large` (Intel Xeon Platinum 8488C, 2 vCPU), Decider takes about **9.3 s** to answer one chunk (the three scanner questions). That's against 0.62 s on an Apple M3 ([docs/benchmarks.md](../docs/benchmarks.md)), so scanning a page of about 20 chunks takes about 3 minutes.
+- **What that means:** it's enough to show the agent and both guardrails running on AWS. Record the video on a laptop.
+
+```bash
+# 1. Package the committed code (tracked files only)
+mkdir -p infra/compute/build
+git archive --format=tar.gz -o infra/compute/build/source.tar.gz HEAD
+
+# 2. Create it. The first boot installs PyTorch and downloads the model.
+terraform -chdir=infra/compute init -backend-config=../backend.hcl -backend-config=key=infra/compute.tfstate
+terraform -chdir=infra/compute apply
+
+# 3. Run commands there through SSM (run.sh sends the command and waits for the output)
+infra/compute/run.sh 'test -f READY && echo ready'
+infra/compute/run.sh 'cd app && ~/.local/bin/uv run --env-file .env python -m agent.demo --guard full --warm --no-save | tail -40'
+
+# 4. Destroy, then check nothing is left (both lists should be empty)
+terraform -chdir=infra/compute destroy
+aws ec2 describe-instances --filters Name=tag:Stack,Values=compute \
+  Name=instance-state-name,Values=pending,running,stopping,stopped --query "Reservations[].Instances[].InstanceId"
+aws s3api list-buckets --query "Buckets[?starts_with(Name, 'agent-phish-guard-source-')].Name"
+```
+
 ## Tear down (after the hackathon)
 
 ```bash
+terraform -chdir=infra/compute destroy     # if the compute is up
 terraform -chdir=infra destroy
 terraform -chdir=infra/bootstrap destroy   # last: it holds the state of the step above
 ```

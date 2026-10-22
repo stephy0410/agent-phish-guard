@@ -1,0 +1,61 @@
+#!/bin/bash
+# First boot of the agent instance (cloud-init). Log: /var/log/cloud-init-output.log.
+# Installs the agent and Decider 2B for a dedicated user and starts Decider as a service.
+# No credentials anywhere: the instance role provides them through IMDSv2.
+set -euxo pipefail
+
+# Safety net for the credits: the instance terminates itself (shutdown behavior = terminate)
+# even if nobody runs terraform destroy.
+shutdown -h +${auto_terminate_minutes} "agent-phish-guard: terminating after ${auto_terminate_minutes} minutes"
+
+dnf install -y -q python3-pip tar gzip
+
+# Headroom on 8 GiB instances: the model takes about 5 GB, PyTorch and the agent the rest.
+fallocate -l 4G /swapfile
+chmod 600 /swapfile
+mkswap /swapfile
+swapon /swapfile
+
+useradd --system --create-home --home-dir /opt/phishguard --shell /bin/bash phishguard
+mkdir -p /opt/phishguard/app
+aws s3 cp "s3://${bucket}/${key}" /tmp/source.tar.gz --region "${region}"
+tar -xzf /tmp/source.tar.gz -C /opt/phishguard/app
+rm /tmp/source.tar.gz
+
+cat > /opt/phishguard/app/.env <<'ENV'
+AWS_REGION=${region}
+BEDROCK_MODEL_ID=${model_id}
+DECIDER_URL=http://127.0.0.1:8099
+ENV
+chown -R phishguard:phishguard /opt/phishguard
+
+# uv (pinned), the project's environment from uv.lock, and Decider, all as the service user.
+sudo -u phishguard -H python3 -m pip install --user --quiet uv==0.12.15
+sudo -u phishguard -H bash -c 'cd /opt/phishguard/app && ~/.local/bin/uv sync --frozen --quiet'
+sudo -u phishguard -H bash -c '~/.local/bin/uv tool install --quiet strands-decider==0.1.0'
+
+cat > /etc/systemd/system/strands-decider.service <<'UNIT'
+[Unit]
+Description=Strands Decider 2B, local to the agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=phishguard
+WorkingDirectory=/opt/phishguard
+Environment=HF_HOME=/opt/phishguard/.cache/huggingface
+ExecStart=/opt/phishguard/.local/bin/strands-decider serve StrandsAgents/strands-decider-2B-qwen3.5-v1-2610 --host 127.0.0.1 --port 8099 --device cpu
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+systemctl daemon-reload
+systemctl enable --now strands-decider
+
+# Ready once Decider answers (the first start downloads the model from Hugging Face).
+for _ in $(seq 1 120); do
+  curl -sf http://127.0.0.1:8099/health && break
+  sleep 10
+done
+touch /opt/phishguard/READY
