@@ -19,18 +19,23 @@ Summary: [`eval/results/bedrock_judge.md`](../eval/results/bedrock_judge.md).
 
 | | Decider 2B (scanner) | Haiku 4.5 as judge |
 | --- | --- | --- |
-| `flag_chunk` attacks caught | 41/54 (76%) | 40/54 (74%) |
-| False alarms on `allow` rows | 3/60 | 0/60 |
-| Latency per chunk | about 0.6 s, local on an Apple M3 | median 685 ms, p95 846 ms, over the network |
-| Cost | no per-call cost; runs on the machine | about $0.000534 per chunk, $0.53 per 1,000 |
+| `flag_chunk` attacks caught | 40/54 (74%) on CPU, 41/54 (76%) on an Apple M3 | 40/54 (74%); 32/54 (59%) with the strict rule |
+| False alarms on `allow` rows | 3/60 | 0/60 with either rule |
+| Latency per chunk, p50 / p95 | 624 / 693 ms, local on an Apple M3 | 685 / 838 ms, over the network |
+| Cost per 1,000 chunks | $0 per call, plus about 10.5 min of machine time | $0.53 |
 
-Decider's row is the scanner's first run on this dataset with the thresholds of #15, reported in
-the review of #17; its latency is from [docs/scanner.md](scanner.md). Haiku's cost uses the
-US-profile price listed on 2026-10-21 ($1.10 / $5.50 per million tokens in / out); check the
-Bedrock pricing page before quoting it.
+Decider's accuracy is the scanner at the thresholds of #15:
+- **On CPU:** [eval/results/dataset_metrics.md](../eval/results/dataset_metrics.md) (#23).
+- **On an Apple M3:** the review of #23. One row scores 0.8997 on CPU and 0.9007 on the M3, right on the 0.9 bar.
+
+Both latencies are from [docs/benchmarks.md](benchmarks.md#decider-2b-against-bedrock-as-judge): the same 120 chunks and the same percentile method. Nearest-rank would put Haiku's p95 at 846 ms.
+
+Cost:
+- **Haiku:** the US-profile price listed on 2026-10-21 ($1.10 / $5.50 per million tokens in / out). Check the Bedrock pricing page before quoting it.
+- **Decider:** no per-call price; you pay for the machine it runs on. The benchmark has the break-even point.
 
 A 2B model running locally catches about as many attacks as a hosted frontier-family model asked
-the same questions, at no per-call cost. Haiku makes fewer false alarms.
+the same questions, about as fast and at no per-call cost. Haiku makes fewer false alarms.
 
 ## Shared weakness: "Assistant:" without "AI"
 

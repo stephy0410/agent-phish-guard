@@ -1,0 +1,50 @@
+{
+  "measured_at": "2026-10-22T01:55:44+00:00",
+  "chunks": 120,
+  "decider": {
+    "device": "mps",
+    "checkpoint": "StrandsAgents/strands-decider-2B-qwen3.5-v1-2610",
+    "machine": {
+      "os": "macOS-15.7.1-arm64-arm-64bit",
+      "machine": "arm64",
+      "python": "3.12.6",
+      "cpu": "Apple M3",
+      "memory_gb": "16"
+    },
+    "warm_round_trip_ms": [
+      624.25,
+      692.5749999999999
+    ],
+    "warm_server_ms": [
+      622.7750000000001,
+      691.6149999999999
+    ],
+    "cold_round_trip_ms": [
+      645.0,
+      761.04
+    ],
+    "input_tokens": 329.5833333333333,
+    "cost_per_1000_usd": 0.0,
+    "machine_minutes_per_1000": 10.488916666666665
+  },
+  "bedrock": {
+    "model": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+    "round_trip_ms": [
+      684.5999999999999,
+      837.7299999999999
+    ],
+    "server_ms": [
+      600.0,
+      715.2499999999999
+    ],
+    "input_tokens": 325.48333333333335,
+    "output_tokens": 31.958333333333332,
+    "cost_per_1000_usd": 0.5338025
+  },
+  "break_even": {
+    "instance": "m7i.xlarge",
+    "usd_per_hour": 0.2016,
+    "chunks_per_hour": 377.667770383241,
+    "max_seconds_per_chunk": 9.5321875
+  }
+}
