@@ -74,6 +74,39 @@ def test_agent_markdown_bold():
     assert say("the **Onyx** <b>") == "the <b>Onyx</b> &lt;b&gt;"
 
 
+def test_a_failed_browse_takes_no_chunks():
+    """Stephy's case in #26: /, then /checkout (not a page), then Onyx."""
+    from tests.test_demo import ONYX
+    from tools.browse import BASE_URL
+
+    model = ScriptedModel(
+        [
+            ("browse_page", {"url": BASE_URL}),
+            ("browse_page", {"url": f"{BASE_URL}checkout"}),
+            ("browse_page", {"url": ONYX}),
+            "Done.",
+        ]
+    )
+    trace = run(build_setup("full", decider=FakeDecider()), model=model)
+    page = render(trace)
+    cards = page.split('<span class="tool">browse_page</span>')[1:]
+    assert len(cards) == 3
+    home, checkout, onyx = cards
+    assert "QUARANTINED" not in home
+    assert "The page didn" in checkout and "Cannot open" in checkout
+    assert "<table>" not in checkout and "QUARANTINED" not in checkout
+    assert onyx.count("QUARANTINED") == 2  # Onyx keeps its own chunks
+
+
+def test_the_same_page_opened_twice_gets_two_tables():
+    from tests.test_demo import ONYX
+
+    model = ScriptedModel([("browse_page", {"url": ONYX}), ("browse_page", {"url": ONYX}), "Ok."])
+    trace = run(build_setup("full", decider=FakeDecider()), model=model)
+    cards = render(trace).split('<span class="tool">browse_page</span>')[1:]
+    assert [c.count("QUARANTINED") for c in cards] == [2, 2]
+
+
 def test_text_is_escaped_and_invisible_characters_are_shown():
     assert show_text("<b>x</b>") == "&lt;b&gt;x&lt;/b&gt;"
     assert show_text("a​b") == 'a<span class="inv">U+200B</span>b'

@@ -124,6 +124,12 @@ def page_text(text: str, recipients: dict[str, str]) -> str:
     return "\n".join(lines)
 
 
+def page_url(result: Step | None) -> str | None:
+    """The URL a browse_page result opened ("Page: <url>"), or None if the call failed."""
+    first = (result.text if result else "").split("\n", 1)[0]
+    return first.removeprefix("Page: ") if first.startswith("Page: ") else None
+
+
 def browse_card(
     step: Step,
     result: Step | None,
@@ -142,6 +148,10 @@ def browse_card(
         body = chunk_table(chunks)
         if not blocked:  # nothing to see for the video: collapsed, one click to open
             body = f"<details><summary>Show the {len(chunks)} chunks</summary>{body}</details>"
+    elif page_url(result) is None:  # the page didn't open: show why
+        count = ""
+        reason = result.text if result else "no result"
+        body = f'<p class="unchecked">The page didn\'t open: {esc(reason)}</p>'
     else:
         count = ""
         text = result.text if result else ""
@@ -232,10 +242,11 @@ def render(trace: Trace) -> str:
         elif step.kind == "tool_call":
             result = results.get(step.tool_use_id)
             if step.tool == "browse_page":
-                url = None
+                # Only the chunks of the page this call opened. A failed call (no "Page:"
+                # line) scanned nothing and takes nothing.
+                url = page_url(result)
                 chunks: list[dict[str, Any]] = []
-                while pending and (url is None or pending[0]["url"] == url):
-                    url = pending[0]["url"]
+                while url and pending and pending[0]["url"] == url:
                     if chunks and pending[0]["index"] == 0:
                         break  # the same page opened again: a new scan starts at index 0
                     chunks.append(pending.pop(0))
