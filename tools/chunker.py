@@ -6,17 +6,24 @@ its visibility:
 
 - ``visible``: text a person sees on the rendered page.
 - ``hidden``: body text that is not shown (display:none, visibility:hidden, opacity:0,
-  font-size:0, zero size, off-screen, the ``hidden`` attribute, a transparent text color, or
-  text colored like its background). ``aria-hidden`` does not count: that text is on screen,
-  only screen readers skip it.
-- ``metadata``: never body text (comments, alt/title/aria-label attributes, <title>, <meta>,
-  JSON-LD).
+  font-size:0, zero size or max size with overflow hidden, off-screen, clipped away with
+  ``clip`` or ``clip-path: inset(50%)``, ``transform: scale(0)``, the ``hidden`` attribute, a
+  transparent text color, or text colored like, or almost like, its background).
+  ``aria-hidden`` does not count: that text is on screen, only screen readers skip it.
+- ``metadata``: never body text (comments, alt/title/aria-label/aria-description/placeholder
+  attributes, <title>, <meta>, JSON-LD).
 
 Known limits (static parsing):
 - CSS is read from inline ``style`` attributes and from simple rules in ``<style>`` blocks
   (selectors ``tag``, ``.class``, ``#id``). External stylesheets, combinators, media queries
   and JavaScript changes are ignored. Rendering with Playwright would close that gap.
 - Background color is tracked only through inline/simple CSS; images and gradients are ignored.
+- Text that CSS generates (``::before`` / ``::after`` with ``content``) is not in the HTML text,
+  so it is not extracted.
+- Inline elements are joined without a space unless one is in the HTML, except before a
+  capitalized word ("Onyx" + "Lowest price", "SALE" + "Now", "$19.90" + "Sale"), where CSS
+  usually spaces them on screen. This is for readability only: the scanner and the model read
+  the same chunk text, so spacing can't make them disagree.
 
 Text normalization is deliberately minimal: only regular whitespace is collapsed. Zero-width
 characters and non-ASCII look-alikes are kept, because they are attack signals (taxonomy
@@ -90,7 +97,7 @@ BLOCK_TAGS = frozenset(
 )
 SKIP_TAGS = frozenset({"style", "link", "iframe", "svg", "canvas", "object", "embed"})
 ALWAYS_HIDDEN_TAGS = frozenset({"noscript", "template"})
-METADATA_ATTRS = ("alt", "title", "aria-label")
+METADATA_ATTRS = ("alt", "title", "aria-label", "aria-description", "placeholder")
 TECHNICAL_META = frozenset(
     {"viewport", "theme-color", "color-scheme", "robots", "referrer", "format-detection"}
 )
@@ -269,8 +276,99 @@ def hides_element(decls: dict[str, str], tag: Tag) -> bool:
     indent = _length(decls.get("text-indent"))
     if indent is not None and indent <= -1000:
         return True
+    zero_max = _length(decls.get("max-width")) == 0 or _length(decls.get("max-height")) == 0
+    if zero_max and decls.get("overflow") in ("hidden", "clip"):
+        return True
+    if _clipped_away(decls.get("clip-path", "")) or _scaled_away(decls.get("transform", "")):
+        return True
     clip = decls.get("clip", "")
     return clip.startswith(("rect(0", "rect(1px, 1px, 1px"))
+
+
+_INSET = re.compile(r"inset\(([^)]*)\)")
+_SCALE = re.compile(r"\bscale(x|y|3d)?\(([^)]*)\)")
+MIN_SCALE = 0.1
+"""A scale factor at or below this shrinks text out of sight."""
+
+
+def _clipped_away(clip_path: str) -> bool:
+    """True when ``clip-path`` leaves nothing visible.
+
+    ``circle(0)`` / ``ellipse(0)``, or an ``inset()`` whose top + bottom or left + right
+    percentages add up to 100% or more (``inset(50%)``, ``inset(100%)``). ``inset(50% 0 0 0)``
+    still shows the bottom half, so it doesn't count. Insets in px can't be judged without the
+    element's size and are left alone.
+    """
+    value = clip_path.strip()
+    if re.match(r"(circle|ellipse)\(\s*0(\.0+)?(px|%)?\s*[)a-z]", value):
+        return True
+    match = _INSET.search(value)
+    if not match:
+        return False
+    parts = match.group(1).split(" round ")[0].split()
+    if not 1 <= len(parts) <= 4:
+        return False
+    top, right, bottom, left = {
+        1: lambda p: (p[0], p[0], p[0], p[0]),
+        2: lambda p: (p[0], p[1], p[0], p[1]),
+        3: lambda p: (p[0], p[1], p[2], p[1]),
+        4: lambda p: (p[0], p[1], p[2], p[3]),
+    }[len(parts)](parts)
+
+    def pct(v: str) -> float | None:
+        if v.endswith("%"):
+            try:
+                return float(v[:-1])
+            except ValueError:
+                return None
+        return 0.0 if re.fullmatch(r"0(\.0+)?(px)?", v) else None
+
+    for a, b in ((top, bottom), (left, right)):
+        pa, pb = pct(a), pct(b)
+        if pa is not None and pb is not None and pa + pb >= 100:
+            return True
+    return False
+
+
+def _scaled_away(transform: str) -> bool:
+    """True when a ``scale``/``scaleX``/``scaleY``/``scale3d`` factor is at or below 0.1."""
+    for match in _SCALE.finditer(transform):
+        kind, args = match.groups()
+        factors = [a.strip() for a in args.split(",") if a.strip()]
+        if kind == "3d":
+            factors = factors[:2]  # x and y; z doesn't hide flat text
+        for factor in factors:
+            try:
+                value = float(factor[:-1]) / 100 if factor.endswith("%") else float(factor)
+            except ValueError:
+                continue
+            if abs(value) <= MIN_SCALE:
+                return True
+    return False
+
+
+def _luminance(hex_color: str) -> float:
+    """WCAG relative luminance of ``#rrggbb``."""
+
+    def channel(c: int) -> float:
+        v = c / 255
+        return v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
+
+    r, g, b = (int(hex_color[i : i + 2], 16) for i in (1, 3, 5))
+    return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
+
+
+NEAR_INVISIBLE_CONTRAST = 1.1
+"""Below this WCAG contrast ratio text is effectively invisible (#fefefe on white is 1.01;
+the faintest readable grey on white, #eeeeee, is 1.16)."""
+
+
+def _same_looking(color: str, background: str) -> bool:
+    """True when text and background are the same color, or too close to tell apart."""
+    if color == background:
+        return True
+    lighter, darker = sorted((_luminance(color), _luminance(background)), reverse=True)
+    return (lighter + 0.05) / (darker + 0.05) < NEAR_INVISIBLE_CONTRAST
 
 
 # --------------------------------------------------------------------------- the walk
@@ -338,11 +436,10 @@ class _Walker:
             self.emit_metadata(tag.get_text(), "title")
             return
         if name == "meta":
-            key = tag.get("name") or tag.get("property") or tag.get("http-equiv")
+            attr = next((a for a in ("name", "property", "http-equiv") if tag.get(a)), None)
+            key = tag.get(attr) if attr else None
             if key and tag.get("content") and str(key).lower() not in TECHNICAL_META:
-                self.emit_metadata(
-                    str(tag["content"]), f"meta[{'name' if tag.get('name') else 'property'}={key}]"
-                )
+                self.emit_metadata(str(tag["content"]), f"meta[{attr}={key}]")
             return
         if name == "script":
             if str(tag.get("type", "")).lower() == "application/ld+json":
@@ -363,13 +460,25 @@ class _Walker:
         if child.hidden_by is None and (
             name in ALWAYS_HIDDEN_TAGS
             or hides_element(decls, tag)
-            or ("color" in decls and child.color == child.background)
+            or ("color" in decls and _same_looking(child.color, child.background))
         ):
             child.hidden_by = tag
         self.walk(tag, child)
 
 
 # --------------------------------------------------------------------------- public API
+
+
+def _joiner(left: str, right: str) -> str:
+    """A space between two inline elements when the second starts a capitalized word.
+
+    "Onyx" + "Lowest price", "SALE" + "Now" and "$19.90" + "Sale" read as separate words on
+    screen. A word split by tags stays whole: "I" + "g" + "nore", "ignor" + "E". A readability
+    choice only; the scanner and the model see the same text either way.
+    """
+    if left[-1:].isalnum() and right[:1].isupper() and right[1:2].islower():
+        return " "
+    return ""
 
 
 def chunk_html(html: str, url: str, max_chars: int = MAX_CHARS) -> list[Chunk]:
@@ -382,7 +491,7 @@ def chunk_html(html: str, url: str, max_chars: int = MAX_CHARS) -> list[Chunk]:
     merged: list[_Piece] = []
     for piece in walker.pieces:
         if merged and merged[-1].group == piece.group:
-            merged[-1].text += piece.text
+            merged[-1].text += _joiner(merged[-1].text, piece.text) + piece.text
         else:
             merged.append(_Piece(piece.text, piece.visibility, piece.source, piece.group))
 
