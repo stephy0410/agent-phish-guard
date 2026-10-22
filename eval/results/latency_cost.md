@@ -18,3 +18,5 @@ Measured 2026-10-22T01:55:44+00:00, 120 chunks of `eval/data/eval_dataset.jsonl`
 Decider ran locally: Apple M3, `mps` device, `StrandsAgents/strands-decider-2B-qwen3.5-v1-2610`. Haiku: `us.anthropic.claude-haiku-4-5-20251001-v1:0` on Bedrock, from `eval/results/bedrock_judge.csv`, over the network; its price is in `eval/run_bedrock_judge.py`.
 
 Break-even: a machine rented by the hour costs less than the judge once it scans more than **378 chunks per hour**, for example an `m7i.xlarge` at $0.2016/h. It must then take at most 9.5 s per chunk; Decider's speed on that instance was not measured.
+
+Both sides were measured one request at a time. Throughput under concurrent requests (Decider's server has several slots, Bedrock takes parallel calls) was not measured, and the chunks a machine can scan per hour depend on it.

@@ -201,6 +201,10 @@ def markdown(s: dict) -> str:
             f"{e['max_seconds_per_chunk']:.1f} s per chunk; Decider's speed on that instance "
             "was not measured.",
             "",
+            "Both sides were measured one request at a time. Throughput under concurrent requests "
+            "(Decider's server has several slots, Bedrock takes parallel calls) was not measured, "
+            "and the chunks a machine can scan per hour depend on it.",
+            "",
         ]
     )
 

@@ -21,7 +21,8 @@ Summary: [`eval/results/bedrock_judge.md`](../eval/results/bedrock_judge.md).
 | --- | --- | --- | --- |
 | `flag_chunk` attacks caught | 40/54 (74%) | 41/54 (76%) | 40/54 (74%); 32/54 (59%) with the strict rule |
 | False alarms on `allow` rows | 3/60 | 3/60 | 0/60 with either rule |
-| Latency per chunk, p50 / p95 | not measured | 624 / 693 ms, local | 685 / 838 ms, over the network |
+| Latency per chunk, p50 / p95, server side | not measured | 623 / 692 ms | 600 / 715 ms |
+| Latency per chunk, p50 / p95, round trip | not measured | 624 / 693 ms, local | 685 / 838 ms, from Mexico to `us-east-1` |
 | Cost per 1,000 chunks | $0 per call, plus machine time | $0 per call, plus about 10.5 min of machine time | $0.53 |
 
 Decider's rows come from `eval/run_dataset_metrics.py` with the current `ScanPolicy`
