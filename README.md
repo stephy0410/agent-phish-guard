@@ -56,6 +56,8 @@ uv tool install strands-decider
 strands-decider serve StrandsAgents/strands-decider-2B-qwen3.5-v1-2610 --port 8099
 ```
 
+The server keeps that terminal busy, so run the agent or the tests in another one. `uv tool install` puts the command in `~/.local/bin`. If your shell answers `command not found: strands-decider`, run `uv tool update-shell` once and open a new terminal.
+
 Try it from the CLI:
 
 ```bash
@@ -76,6 +78,7 @@ uv run --env-file .env python -m agent "In one sentence, what is indirect prompt
 
 ```bash
 uv run pytest                                        # unit tests, no AWS calls
+RUN_DECIDER_TESTS=1 uv run pytest -m decider         # both guardrails against the real Decider
 RUN_BEDROCK_TESTS=1 uv run --env-file .env pytest    # also calls Bedrock
 uv run ruff check . && uv run ruff format --check .  # lint
 ```

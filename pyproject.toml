@@ -28,6 +28,7 @@ pythonpath = ["."]
 testpaths = ["tests"]
 markers = [
     "bedrock: calls Amazon Bedrock; needs AWS credentials and RUN_BEDROCK_TESTS=1",
+    "decider: calls the local Decider server; needs it running and RUN_DECIDER_TESTS=1",
 ]
 
 [tool.ruff]
