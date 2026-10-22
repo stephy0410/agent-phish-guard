@@ -74,6 +74,15 @@ class Trace:
     guard_decisions: list[dict[str, Any]] = field(default_factory=list)
     send_attempts: list[dict[str, Any]] = field(default_factory=list)
     final_answer: str = ""
+    scanned: list[dict[str, Any]] = field(default_factory=list)
+    """Every chunk the scanner checked, in order, with its decisions and action (full mode)."""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Trace:
+        """Rebuild a trace saved by ``save`` (older traces without ``scanned`` load too)."""
+        data = {k: v for k, v in data.items() if k not in ("leaked", "outcome")}
+        steps = [Step(**s) for s in data.pop("steps", [])]
+        return cls(steps=steps, **data)
 
     @property
     def leaks(self) -> list[dict[str, Any]]:
@@ -247,12 +256,38 @@ def run(
                 "reason": r.action.reason,
                 "question": r.action.message if r.action.type == "confirm" else None,
                 "user_answer": r.user_response,
+                "arguments": r.arguments,
+                "decisions": [_decision_dict(d) for d in r.action.decisions],
             }
             for r in (setup.guard.records if setup.guard else [])
         ],
         send_attempts=[asdict(a) for a in send_attempts()],
         final_answer=str(result).strip(),
+        scanned=[
+            {
+                "url": r.chunk.url,
+                "index": r.chunk.index,
+                "visibility": r.chunk.visibility,
+                "source": r.chunk.source,
+                "text": r.chunk.text,
+                "action": r.action.type,
+                "shown_to_model": r.action.message or r.chunk.text,
+                "cached": r.cached,
+                "decisions": [_decision_dict(d) for d in r.action.decisions],
+            }
+            for r in (setup.scanner.records if setup.scanner else [])
+        ],
     )
+
+
+def _decision_dict(d: Any) -> dict[str, Any]:
+    """One Decider answer: question, P(true), confidence and label."""
+    return {
+        "question": d.question,
+        "p_true": d.probabilities["true"],
+        "confidence": d.confidence,
+        "label": d.label,
+    }
 
 
 def steps_from_messages(messages: list[dict[str, Any]]) -> list[Step]:
@@ -363,6 +398,9 @@ def save(trace: Trace, folder: Path = TRACES) -> tuple[Path, Path]:
         json.dumps(trace.to_dict(), indent=2, ensure_ascii=True) + "\n", encoding="utf-8"
     )
     md_path.write_text(markdown(trace), encoding="utf-8")
+    from agent.trace_view import render  # the viewer imports this module
+
+    base.with_suffix(".html").write_text(render(trace), encoding="utf-8")
     return json_path, md_path
 
 
@@ -391,7 +429,8 @@ def main(argv: list[str] | None = None, print_fn: Callable[[str], Any] = print) 
         print_fn(markdown(trace))
         if not args.no_save:
             json_path, md_path = save(trace)
-            print_fn(f"Saved {md_path} and {json_path.name}\n")
+            html_name = json_path.with_suffix(".html").name
+            print_fn(f"Saved {md_path}, {json_path.name} and {html_name}\n")
         if args.runs > 1:
             print_fn(f"--- run {i + 1}/{args.runs}: {trace.outcome}\n")
     if args.runs > 1:
