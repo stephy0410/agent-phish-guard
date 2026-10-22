@@ -6,17 +6,23 @@ its visibility:
 
 - ``visible``: text a person sees on the rendered page.
 - ``hidden``: body text that is not shown (display:none, visibility:hidden, opacity:0,
-  font-size:0, zero size, off-screen, the ``hidden`` attribute, a transparent text color, or
-  text colored like its background). ``aria-hidden`` does not count: that text is on screen,
-  only screen readers skip it.
-- ``metadata``: never body text (comments, alt/title/aria-label attributes, <title>, <meta>,
-  JSON-LD).
+  font-size:0, zero size or max size with overflow hidden, off-screen, clipped away with
+  ``clip`` or ``clip-path: inset(50%)``, ``transform: scale(0)``, the ``hidden`` attribute, a
+  transparent text color, or text colored like, or almost like, its background).
+  ``aria-hidden`` does not count: that text is on screen, only screen readers skip it.
+- ``metadata``: never body text (comments, alt/title/aria-label/aria-description/placeholder
+  attributes, <title>, <meta>, JSON-LD).
 
 Known limits (static parsing):
 - CSS is read from inline ``style`` attributes and from simple rules in ``<style>`` blocks
   (selectors ``tag``, ``.class``, ``#id``). External stylesheets, combinators, media queries
   and JavaScript changes are ignored. Rendering with Playwright would close that gap.
 - Background color is tracked only through inline/simple CSS; images and gradients are ignored.
+- Text that CSS generates (``::before`` / ``::after`` with ``content``) is not in the HTML text,
+  so it is not extracted.
+- Inline elements are joined without a space unless one is in the HTML, except at a lowercase
+  to uppercase boundary ("Onyx" + "Lowest price"). Splitting a word with tags ("I<b>g</b>nore")
+  keeps it whole on purpose: inserting spaces there would help an attacker hide the word.
 
 Text normalization is deliberately minimal: only regular whitespace is collapsed. Zero-width
 characters and non-ASCII look-alikes are kept, because they are attack signals (taxonomy
@@ -90,7 +96,7 @@ BLOCK_TAGS = frozenset(
 )
 SKIP_TAGS = frozenset({"style", "link", "iframe", "svg", "canvas", "object", "embed"})
 ALWAYS_HIDDEN_TAGS = frozenset({"noscript", "template"})
-METADATA_ATTRS = ("alt", "title", "aria-label")
+METADATA_ATTRS = ("alt", "title", "aria-label", "aria-description", "placeholder")
 TECHNICAL_META = frozenset(
     {"viewport", "theme-color", "color-scheme", "robots", "referrer", "format-detection"}
 )
@@ -269,8 +275,40 @@ def hides_element(decls: dict[str, str], tag: Tag) -> bool:
     indent = _length(decls.get("text-indent"))
     if indent is not None and indent <= -1000:
         return True
+    zero_max = _length(decls.get("max-width")) == 0 or _length(decls.get("max-height")) == 0
+    if zero_max and decls.get("overflow") in ("hidden", "clip"):
+        return True
+    clip_path = decls.get("clip-path", "").replace(" ", "")
+    if clip_path.startswith(("inset(50%", "circle(0")):
+        return True
+    if re.search(r"\bscale[xy]?\(0(\.0+)?(?:[,)]|\s)", decls.get("transform", "")):
+        return True
     clip = decls.get("clip", "")
     return clip.startswith(("rect(0", "rect(1px, 1px, 1px"))
+
+
+def _luminance(hex_color: str) -> float:
+    """WCAG relative luminance of ``#rrggbb``."""
+
+    def channel(c: int) -> float:
+        v = c / 255
+        return v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
+
+    r, g, b = (int(hex_color[i : i + 2], 16) for i in (1, 3, 5))
+    return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
+
+
+NEAR_INVISIBLE_CONTRAST = 1.1
+"""Below this WCAG contrast ratio text is effectively invisible (#fefefe on white is 1.01;
+the faintest readable grey on white, #eeeeee, is 1.16)."""
+
+
+def _same_looking(color: str, background: str) -> bool:
+    """True when text and background are the same color, or too close to tell apart."""
+    if color == background:
+        return True
+    lighter, darker = sorted((_luminance(color), _luminance(background)), reverse=True)
+    return (lighter + 0.05) / (darker + 0.05) < NEAR_INVISIBLE_CONTRAST
 
 
 # --------------------------------------------------------------------------- the walk
@@ -338,11 +376,10 @@ class _Walker:
             self.emit_metadata(tag.get_text(), "title")
             return
         if name == "meta":
-            key = tag.get("name") or tag.get("property") or tag.get("http-equiv")
+            attr = next((a for a in ("name", "property", "http-equiv") if tag.get(a)), None)
+            key = tag.get(attr) if attr else None
             if key and tag.get("content") and str(key).lower() not in TECHNICAL_META:
-                self.emit_metadata(
-                    str(tag["content"]), f"meta[{'name' if tag.get('name') else 'property'}={key}]"
-                )
+                self.emit_metadata(str(tag["content"]), f"meta[{attr}={key}]")
             return
         if name == "script":
             if str(tag.get("type", "")).lower() == "application/ld+json":
@@ -363,13 +400,24 @@ class _Walker:
         if child.hidden_by is None and (
             name in ALWAYS_HIDDEN_TAGS
             or hides_element(decls, tag)
-            or ("color" in decls and child.color == child.background)
+            or ("color" in decls and _same_looking(child.color, child.background))
         ):
             child.hidden_by = tag
         self.walk(tag, child)
 
 
 # --------------------------------------------------------------------------- public API
+
+
+def _joiner(left: str, right: str) -> str:
+    """A space between two inline elements only at a lowercase-to-uppercase boundary.
+
+    "Onyx" + "Lowest price" reads as two words on screen (CSS spaces them); "I" + "g" + "nore"
+    is one word split by tags, and stays one so the scanner still reads "Ignore".
+    """
+    if left[-1:].islower() and right[:1].isupper():
+        return " "
+    return ""
 
 
 def chunk_html(html: str, url: str, max_chars: int = MAX_CHARS) -> list[Chunk]:
@@ -382,7 +430,7 @@ def chunk_html(html: str, url: str, max_chars: int = MAX_CHARS) -> list[Chunk]:
     merged: list[_Piece] = []
     for piece in walker.pieces:
         if merged and merged[-1].group == piece.group:
-            merged[-1].text += piece.text
+            merged[-1].text += _joiner(merged[-1].text, piece.text) + piece.text
         else:
             merged.append(_Piece(piece.text, piece.visibility, piece.source, piece.group))
 

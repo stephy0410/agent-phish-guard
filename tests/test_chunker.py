@@ -187,3 +187,59 @@ def test_technical_meta_tags_are_skipped():
         '<meta name="description" content="SECRET"></head><body><p>body</p></body>'
     )
     assert [c.source for c in chunks_of(html)] == ["meta[name=description]", "p"]
+
+
+# --------------------------------------------------------------------------- follow-ups from #10
+
+
+@pytest.mark.parametrize(
+    "html",
+    [
+        '<div style="clip-path: inset(50%)">HIDDEN</div>',
+        '<div style="clip-path:circle(0)">HIDDEN</div>',
+        '<div style="transform: scale(0)">HIDDEN</div>',
+        '<div style="transform: translateX(2px) scaleY(0)">HIDDEN</div>',
+        '<div style="max-height:0;overflow:hidden">HIDDEN</div>',
+        '<div style="max-width:0px;overflow:clip">HIDDEN</div>',
+        '<p style="color:#fefefe">HIDDEN</p>',  # almost white on the default white
+        '<div style="background:#000"><p style="color:#050505">HIDDEN</p></div>',
+    ],
+)
+def test_more_ways_to_hide_text(html):
+    assert find(chunks_of(f"<body>{html}</body>"), "HIDDEN").visibility == "hidden"
+
+
+@pytest.mark.parametrize(
+    "html",
+    [
+        '<div style="transform: scale(1.05)">SHOWN</div>',
+        '<div style="max-height:0">SHOWN</div>',  # overflow visible: the text still shows
+        '<div style="clip-path: inset(10%)">SHOWN</div>',
+        '<p style="color:#999999">SHOWN</p>',  # light grey, still readable
+    ],
+)
+def test_lookalikes_of_hiding_that_still_show(html):
+    assert find(chunks_of(f"<body>{html}</body>"), "SHOWN").visibility == "visible"
+
+
+@pytest.mark.parametrize(
+    ("html", "source"),
+    [
+        ('<button aria-description="SECRET">Buy</button>', "button[aria-description]"),
+        ('<input placeholder="SECRET">', "input[placeholder]"),
+        ('<head><meta http-equiv="refresh" content="SECRET"></head>', "meta[http-equiv=refresh]"),
+    ],
+)
+def test_new_metadata_sources(html, source):
+    chunk = find(chunks_of(f"<html>{html}<body><p>body</p></body></html>"), "SECRET")
+    assert (chunk.visibility, chunk.source) == ("metadata", source)
+
+
+def test_inline_elements_get_a_space_at_a_case_boundary():
+    html = '<body><div>Onyx<span class="tag">Lowest price</span></div></body>'
+    assert chunks_of(html)[0].text == "Onyx Lowest price"
+
+
+def test_a_word_split_by_tags_stays_one_word():
+    assert chunks_of("<body><p>I<b>g</b>nore this</p></body>")[0].text == "Ignore this"
+    assert chunks_of("<body><p>AI <i>assistant</i>: go</p></body>")[0].text == "AI assistant: go"
