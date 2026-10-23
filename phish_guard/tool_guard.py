@@ -4,7 +4,7 @@ A Strands ``InterventionHandler`` on ``before_tool_call``:
 
     agent = Agent(tools=[...], interventions=[ToolCallGuard(sensitive_tools={"send_email"})])
 
-For a call to a sensitive tool (``send_data`` by default) it asks the tool-call questions of
+For a call to one of ``sensitive_tools`` (required) it asks the tool-call questions of
 ``phish_guard.questions`` about the user's own messages and the proposed call, and returns:
 
 - ``Proceed`` when the arguments come from the user's request and the call serves it,
@@ -167,10 +167,14 @@ class ToolCallGuard(InterventionHandler):
     returns the user's answer (True or "yes" to allow). Without it, ``Confirm`` interrupts the
     agent and the caller resumes it with the answer (Strands interrupts).
 
+    ``sensitive_tools`` names the tools to check; it is required, so a guard can't silently
+    check nothing.
+
     ``find_user_data`` names the user's sensitive fields a call carries, in its data or in its
     recipient, by value rather than by field name. When given, the confirmation question says
     what the call contains, and ``recipient_rule`` can deny the user's data to a recipient
-    nobody gave. Both need knowledge of the user, so both are off by default.
+    nobody gave. Both need knowledge of the user, so both are off by default, and the rule
+    needs ``find_user_data``: without it no call would ever carry user data.
     """
 
     name = "agent-phish-guard-tool-call-guard"
@@ -179,12 +183,22 @@ class ToolCallGuard(InterventionHandler):
         self,
         client: DeciderClient | None = None,
         policy: ToolCallPolicy | None = None,
-        sensitive_tools: Iterable[str] = ("send_data",),
+        *,
+        sensitive_tools: Iterable[str],
         confirm: Callable[[str], Any] | None = None,
         log_path: str | Path | None = None,
         find_user_data: FindUserData | None = None,
         recipient_rule: RecipientRule | None = None,
     ) -> None:
+        if isinstance(sensitive_tools, str):
+            sensitive_tools = [sensitive_tools]  # "send_data" means the tool, not its letters
+        if not sensitive_tools:
+            raise ValueError("sensitive_tools is empty: the guard would check no tool")
+        if recipient_rule is not None and find_user_data is None:
+            raise ValueError(
+                "recipient_rule needs find_user_data: without it no call carries user data, "
+                "so the rule would never deny anything"
+            )
         self.client = client or DeciderClient()
         self.policy = policy or ToolCallPolicy()
         self.sensitive_tools = frozenset(sensitive_tools)

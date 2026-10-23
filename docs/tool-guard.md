@@ -12,7 +12,7 @@ from agent.core import build_guarded_agent
 agent = build_guarded_agent(tools=[browse_page, get_user_profile, send_data])
 ```
 
-For a call to a sensitive tool (`send_data` by default; `sensitive_tools=` changes the list):
+For a call to a sensitive tool (this demo checks `send_data`; the library's `ToolCallGuard` requires `sensitive_tools`):
 
 1. **State:** the user's own messages and the proposed call (tool name and JSON arguments). Tool results, the page text, are never part of the state, so a page can't make its recipient look requested.
 2. **Questions:** `args_grounded` and `serves_user_request` from [`phish_guard/questions.py`](../phish_guard/questions.py), in one request.

@@ -71,9 +71,9 @@ What Decider sees, and what the agent gets back:
 - **Deny:** the tool doesn't run, and the model gets `DENIED: Blocked by Agent Phish Guard: …`.
 - **Confirm:** the user is asked through `confirm`. Without a callback, Strands interrupts the agent (`result.stop_reason == "interrupt"`), and you resume it with the answer.
 
-The confirmation question names the recipient and the fields, and the recipient rule below reads the call's `recipient` and `data` arguments. Tools with other argument names still get Decider's check and a generic question.
+`sensitive_tools` is required: name every tool that sends data or acts for the user. The confirmation question names the recipient and the fields, and the recipient rule below reads the call's `recipient` and `data` arguments. Tools with other argument names still get Decider's check and a generic question.
 
-**The recipient rule (optional).** When a call carries the user's data, the rule denies it unless the recipient was "given", whatever Decider says. Given means the user wrote it, it's the user's own address, or it's a URL on a site the agent browses. Only you know what the user's data is, so pass a function that finds it:
+**The recipient rule (optional).** When a call carries the user's data, the rule denies it unless the recipient was "given", whatever Decider says. Given means the user wrote it, it's the user's own address, or it's a URL on a site the agent browses. Only you know what the user's data is, so pass a function that finds it (the rule refuses to start without one, since it could never fire):
 
 ```python
 from phish_guard import RecipientRule, ToolCallGuard
@@ -133,7 +133,7 @@ Text no person sees gets a lower bar, because injections hide there. The repo's 
 
 ## Tuning
 
-Both policies are dataclasses you can pass in. For example, `ChunkScanner(policy=ScanPolicy(instructs_ai_alone=0.85))` or `ToolCallGuard(policy=ToolCallPolicy(proceed_at=0.7))`.
+Both policies are dataclasses you can pass in. For example, `ChunkScanner(policy=ScanPolicy(instructs_ai_alone=0.85))` or `ToolCallGuard(sensitive_tools={"send_data"}, policy=ToolCallPolicy(proceed_at=0.7))`.
 
 The scanner's defaults are calibrated on a labeled set of 120 chunks ([docs/calibration.md](../docs/calibration.md)):
 - **Attacks caught:** 45 of 54, in-sample.
@@ -144,5 +144,5 @@ Re-check them on your own pages: the dataset and the attacks were written by one
 
 ## Numbers from the repo
 
-- **Speed:** about 0.6 s per chunk (three questions) on an Apple M3, and about 9 s on a 2-vCPU cloud CPU. That's about as fast as Claude Haiku 4.5 asked the same questions on Bedrock, which costs $0.53 per 1,000 chunks ([docs/benchmarks.md](../docs/benchmarks.md)).
+- **Speed:** about 0.6 s per chunk (three questions) on an Apple M3. That's about as fast as Claude Haiku 4.5 on Bedrock asked the same questions, which costs $0.53 per 1,000 chunks ([docs/benchmarks.md](../docs/benchmarks.md)). On a 2-vCPU cloud CPU, Decider takes about 9 s per chunk ([infra/README.md](../infra/README.md)).
 - **End to end:** on the demo store, the scanner quarantined both injections, and the tool guard stopped every send to the attacker ([docs/tool-guard.md](../docs/tool-guard.md)).

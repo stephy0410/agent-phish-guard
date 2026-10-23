@@ -8,6 +8,7 @@ re-exported unchanged, so ``guardrails.tool_guard`` imports keep working.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlsplit
@@ -34,7 +35,8 @@ DEMO_RULE = RecipientRule()
 
 
 class ToolCallGuard(_library.ToolCallGuard):
-    """The library's guard with the demo's ``find_user_data`` and ``RecipientRule`` on by default.
+    """The library's guard with the demo's defaults: it checks ``send_data``, the demo's only
+    sensitive tool, with ``find_user_data`` and the ``RecipientRule`` on.
 
     ``recipient_rule=None`` still turns the rule off, to measure Decider alone.
     """
@@ -42,10 +44,15 @@ class ToolCallGuard(_library.ToolCallGuard):
     def __init__(
         self,
         *args: Any,
+        sensitive_tools: Iterable[str] = ("send_data",),
         find_user_data: _library.FindUserData | None = find_leaked_fields,
         recipient_rule: _library.RecipientRule | None = DEMO_RULE,
         **kwargs: Any,
     ) -> None:
         super().__init__(
-            *args, find_user_data=find_user_data, recipient_rule=recipient_rule, **kwargs
+            *args,
+            sensitive_tools=sensitive_tools,
+            find_user_data=find_user_data,
+            recipient_rule=recipient_rule,
+            **kwargs,
         )

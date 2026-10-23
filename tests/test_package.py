@@ -4,6 +4,7 @@ import ast
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
 from strands.interventions import Deny, Proceed
 
 import phish_guard
@@ -47,13 +48,29 @@ def test_the_library_guard_needs_no_user_knowledge_and_the_demo_guard_keeps_its_
     from guardrails.tool_guard import ToolCallGuard as DemoGuard
     from tools.sensitive import find_leaked_fields
 
-    library = ToolCallGuard(client=FakeDecider(0.7, 0.8))
+    library = ToolCallGuard(client=FakeDecider(0.7, 0.8), sensitive_tools={"send_email"})
     assert library.find_user_data is None and library.recipient_rule is None
+    assert library.sensitive_tools == {"send_email"}
 
     demo = DemoGuard(client=FakeDecider(0.7, 0.8))
     assert isinstance(demo, ToolCallGuard)
+    assert demo.sensitive_tools == {"send_data"}  # the demo's only sensitive tool
     assert demo.find_user_data is find_leaked_fields and demo.recipient_rule is DEMO_RULE
     assert DemoGuard(client=FakeDecider(0.7, 0.8), recipient_rule=None).recipient_rule is None
+
+
+def test_the_library_guard_refuses_a_setup_that_would_protect_nothing():
+    client = FakeDecider()
+    with pytest.raises(TypeError):
+        ToolCallGuard(client=client)  # which tools to check is required
+    with pytest.raises(ValueError, match="empty"):
+        ToolCallGuard(client=client, sensitive_tools=[])
+    with pytest.raises(ValueError, match="find_user_data"):
+        ToolCallGuard(client=client, sensitive_tools={"send_data"}, recipient_rule=RecipientRule())
+    # A single name is one tool, not a set of letters.
+    assert ToolCallGuard(client=client, sensitive_tools="send_data").sensitive_tools == {
+        "send_data"
+    }
 
 
 # --------------------------------------------------------------------------- the README examples
