@@ -1,0 +1,7 @@
+Agent Phish Guard
+Copyright 2026 Arxevia
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+It uses Strands Agents and Strands Decider 2B, which have their own licenses, and calls
+Amazon Bedrock, which is subject to the AWS service terms.

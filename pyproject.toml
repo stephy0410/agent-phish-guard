@@ -4,7 +4,21 @@ version = "0.1.0"
 description = "Guardrails that protect AI agents from phishing pages, using Strands Decider 2B and Amazon Bedrock."
 readme = "phish_guard/README.md"
 license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+authors = [{ name = "Arxevia" }]
 requires-python = ">=3.11"
+keywords = ["strands", "strands-decider", "ai-agents", "guardrails", "prompt-injection", "amazon-bedrock", "llm-security"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Security",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Typing :: Typed",
+]
 # What the installable phish_guard package needs. The demo's own packages are in the "demo" group.
 dependencies = [
     "pydantic>=2.7",
@@ -13,6 +27,8 @@ dependencies = [
 
 [project.urls]
 Repository = "https://github.com/stephy0410/agent-phish-guard"
+Documentation = "https://github.com/stephy0410/agent-phish-guard/blob/main/phish_guard/README.md"
+Issues = "https://github.com/stephy0410/agent-phish-guard/issues"
 
 [dependency-groups]
 dev = [
@@ -33,6 +49,10 @@ build-backend = "hatchling.build"
 # Only the reusable guardrails are installed. agent/, guardrails/, tools/ and eval/ are this
 # repo's demo, imported from the repo root.
 packages = ["phish_guard"]
+
+[tool.hatch.build.targets.sdist]
+# The source release carries the same package and its license files, not the demo or the eval.
+include = ["phish_guard", "LICENSE", "NOTICE"]
 
 [tool.uv]
 default-groups = ["dev", "demo"]

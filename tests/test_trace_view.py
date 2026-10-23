@@ -109,7 +109,7 @@ def test_the_same_page_opened_twice_gets_two_tables():
 
 def test_text_is_escaped_and_invisible_characters_are_shown():
     assert show_text("<b>x</b>") == "&lt;b&gt;x&lt;/b&gt;"
-    assert show_text("a​b") == 'a<span class="inv">U+200B</span>b'
+    assert show_text("a\u200bb") == 'a<span class="inv">U+200B</span>b'
     assert "U+E0041" in show_text("ok\U000e0041")
 
 

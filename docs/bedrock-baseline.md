@@ -66,5 +66,6 @@ line, where Haiku saw the claimed authority but not the instruction.
 
 - One run, one model, 120 chunks written by the team. Haiku at temperature 0 is close to, but
   not guaranteed, deterministic.
-- The comparison keeps Decider's questions unchanged on purpose. Rewording `instructs_ai` would
-  help both models and belongs to calibration, not to this baseline.
+- The comparison keeps Decider's questions unchanged on purpose. Two rewordings of `instructs_ai`
+  were tried afterwards with Decider. Both lost more attacks than they gained
+  ([questions.md](questions.md#iteration-log)). Whether a rewording helps Haiku wasn't measured.
