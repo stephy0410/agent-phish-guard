@@ -26,7 +26,7 @@ def row(technique, is_attack, visibility, instructs, req=0.0, auth=0.0, action=N
 
 
 def test_flags_alone_rule():
-    p = PolicyParams()
+    p = CURRENT  # the thresholds before calibration: alone 0.9, data 0.5
     # instructs_ai >= 0.9 flags on its own, whatever the other signals
     assert flags(
         {"instructs_ai": 0.91, "requests_user_data": 0.0, "claims_authority": 0.0}, "visible", p
@@ -37,14 +37,14 @@ def test_flags_alone_rule():
 
 
 def test_flags_paired_rule_uses_visibility_bar():
-    p = PolicyParams()
+    p = CURRENT  # the thresholds before calibration: alone 0.9, data 0.5
     probs = {"instructs_ai": 0.4, "requests_user_data": 0.9, "claims_authority": 0.0}
     assert not flags(probs, "visible", p)  # 0.4 < 0.5 visible bar
     assert flags(probs, "hidden", p)  # 0.4 >= 0.35 unseen bar, and req >= 0.5
 
 
 def test_flags_paired_rule_needs_a_secondary_signal():
-    p = PolicyParams()
+    p = CURRENT  # the thresholds before calibration: alone 0.9, data 0.5
     probs = {"instructs_ai": 0.8, "requests_user_data": 0.2, "claims_authority": 0.2}
     assert not flags(probs, "visible", p)  # instructs_ai high but no data/authority, and < 0.9
 

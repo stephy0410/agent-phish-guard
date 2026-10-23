@@ -46,17 +46,22 @@ class ScanPolicy:
     the dev set injected meta and JSON-LD text scored only 0.39 to 0.42 on `instructs_ai`.
 
     A very confident `instructs_ai` flags on its own. That catches instructions that neither ask
-    for data nor claim authority (add items to the cart, mislead the user), which scored 0.91 to
-    0.96, while no benign text we have reached 0.9 (highest 0.81, over 113 distinct texts).
+    for data nor claim authority (add items to the cart, mislead the user).
 
-    The thresholds are provisional, picked on the dev set (docs/questions.md) and the sandbox
-    pages. Threshold calibration on the labeled dataset replaces them.
+    `instructs_ai_alone` and `requests_user_data` are calibrated on the labeled dataset
+    (docs/calibration.md):
+    - **0.82 alone:** between the highest benign text seen outside the dataset (a developer
+      comment, 0.807) and the next attack up (0.843).
+    - **0.40 for user data:** recovers near-miss exfiltration and added no false alarm in or
+      out of the dataset.
+
+    The other three are from the dev set (docs/questions.md).
     """
 
     instructs_ai: float = 0.5
     instructs_ai_unseen: float = 0.35
-    instructs_ai_alone: float = 0.9
-    requests_user_data: float = 0.5
+    instructs_ai_alone: float = 0.82
+    requests_user_data: float = 0.4
     claims_authority: float = 0.5
 
     def flags(self, chunk: Chunk, p: dict[str, float]) -> bool:

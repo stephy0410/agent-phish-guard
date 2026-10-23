@@ -30,16 +30,18 @@ SCORED_ACTIONS = ("allow", "flag_chunk")
 
 @dataclass(frozen=True)
 class PolicyParams:
-    """The ScanPolicy thresholds, replayed here so the sweep needs no Decider."""
+    """The ScanPolicy thresholds, replayed here so the sweep needs no Decider. The defaults
+    mirror ScanPolicy's; tests/test_calibrate_thresholds.py checks the two agree."""
 
     instructs_ai: float = 0.5
     instructs_ai_unseen: float = 0.35
-    instructs_ai_alone: float = 0.9
-    requests_user_data: float = 0.5
+    instructs_ai_alone: float = 0.82
+    requests_user_data: float = 0.4
     claims_authority: float = 0.5
 
 
-CURRENT = PolicyParams()
+# The provisional thresholds of #15, before this calibration: the "current" column of the report.
+CURRENT = PolicyParams(instructs_ai_alone=0.9, requests_user_data=0.5)
 # Chosen on dataset_scores.json and checked out of sample; the reasoning is in
 # docs/calibration.md. The "alone" rule drops to 0.82 (not 0.80: out of sample a dev comment
 # scores 0.807, so 0.82 sits between the highest benign seen, 0.807, and the next attack, 0.843),

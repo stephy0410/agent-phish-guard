@@ -6,8 +6,9 @@ asks Decider about ``deobfuscate(text)`` instead:
 - Invisible characters (class E): tag characters decoded, zero-width ones dropped, NFKC
   (``reveal_hidden_characters``).
 - Look-alike letters (class F): inside a word that mixes Latin letters with Greek or Cyrillic
-  ones, the look-alikes are mapped to Latin. Words written entirely in Greek or Cyrillic are
-  left alone, so ordinary text in those languages is untouched.
+  ones, and in a one-letter word next to a Latin word, the look-alikes are mapped to Latin.
+  Other words written in Greek or Cyrillic are left alone, so ordinary text in those languages
+  is untouched.
 - Encoded payloads (class J): a base64 run that decodes to readable text is kept and followed by
   its decoded text.
 """
@@ -43,14 +44,28 @@ _BASE64_RUN = re.compile(r"[A-Za-z0-9+/]{20,}={0,2}")
 
 
 def latin_skeleton(text: str) -> str:
-    """Map look-alike letters to Latin inside words that mix Latin with Greek or Cyrillic."""
+    """Map look-alike letters to Latin inside words that mix Latin with Greek or Cyrillic.
 
-    def fix(word: str) -> str:
-        if _LATIN.search(word) and _GREEK_OR_CYRILLIC.search(word):
+    A one-letter word next to a Latin word is mapped too (a lone Cyrillic "a" in "apply a hidden
+    fee"): it can't mix scripts on its own, and a lone look-alike between Latin words isn't a
+    word in another language. Text written in Greek or Cyrillic is left alone.
+    """
+    words = text.split(" ")
+
+    def lone_letter_next_to_latin(i: int) -> bool:
+        word = words[i]
+        if sum(ch.isalpha() for ch in word) != 1 or not _GREEK_OR_CYRILLIC.search(word):
+            return False
+        neighbours = words[max(i - 1, 0) : i] + words[i + 1 : i + 2]
+        return any(_LATIN.search(n) for n in neighbours)
+
+    def fix(i: int, word: str) -> str:
+        mixed = _LATIN.search(word) and _GREEK_OR_CYRILLIC.search(word)
+        if mixed or lone_letter_next_to_latin(i):
             return word.translate(_LOOKALIKES)
         return word
 
-    return " ".join(fix(word) for word in text.split(" "))
+    return " ".join(fix(i, word) for i, word in enumerate(words))
 
 
 def decode_base64_runs(text: str) -> str:
