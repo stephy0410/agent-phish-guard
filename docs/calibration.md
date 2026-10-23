@@ -1,6 +1,6 @@
 # Threshold calibration
 
-The chunk scanner flags a page chunk with `ScanPolicy` (`guardrails/scanner.py`), five thresholds
+The chunk scanner flags a page chunk with `ScanPolicy` (`phish_guard/scanner.py`), five thresholds
 whose provisional values were picked on the dev set. This calibrates them on the labeled dataset
 (`eval/data/eval_dataset.csv`, 60 attacks + 60 benign), prioritizing attack recall. The generated
 numbers and full tables are in [`eval/results/calibration.md`](../eval/results/calibration.md); the

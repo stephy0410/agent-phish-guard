@@ -117,7 +117,7 @@ How `expected_action` is graded against the guardrail's `Action`s:
 
 ## Changing the contract
 
-1. Edit the model in [`contracts/models.py`](../contracts/models.py) and bump `CONTRACT_VERSION` if the change breaks existing data.
+1. Edit the model in [`phish_guard/contracts.py`](../phish_guard/contracts.py) and bump `CONTRACT_VERSION` if the change breaks existing data.
 2. Run `uv run python -m contracts` to regenerate the JSON Schemas, and update the examples.
 3. `uv run pytest` fails if a schema or example is out of date.
 4. Open a PR and ask the person who reads that model to review it.

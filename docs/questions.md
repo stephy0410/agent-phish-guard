@@ -1,6 +1,6 @@
 # Typed questions (draft)
 
-The yes/no questions Decider 2B answers for the guardrail, defined in [`guardrails/questions.py`](../guardrails/questions.py). Decider returns P(true) for each one; turning those numbers into an `Action` is the policy's job, calibrated later on the labeled dataset.
+The yes/no questions Decider 2B answers for the guardrail, defined in [`phish_guard/questions.py`](../phish_guard/questions.py). Decider returns P(true) for each one; turning those numbers into an `Action` is the policy's job, calibrated later on the labeled dataset.
 
 The questions come from section 5 of the [attack taxonomy](../eval/attack-taxonomy.md). Each one asks a single thing, so the policy can combine them: a checkout form legitimately asks for a card number, but it does not instruct an AI.
 
