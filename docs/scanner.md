@@ -1,6 +1,6 @@
 # Chunk scanner
 
-Every chunk of a page goes through Decider 2B before the model sees it. Flagged chunks are quarantined: the model gets a short notice in their place, and the chunk, its decisions and their confidence are recorded. Code: [`guardrails/scanner.py`](../guardrails/scanner.py).
+Every chunk of a page goes through Decider 2B before the model sees it. Flagged chunks are quarantined: the model gets a short notice in their place, and the chunk, its decisions and their confidence are recorded. Code: [`phish_guard/scanner.py`](../phish_guard/scanner.py).
 
 ## How it plugs in
 
@@ -16,11 +16,11 @@ browse_page = make_browse_tool(on_chunks=scanner)
 
 For each chunk:
 
-1. **Deobfuscate** ([`guardrails/deobfuscate.py`](../guardrails/deobfuscate.py)). Decider is asked about a readable copy of the text, while the `Chunk` keeps the raw one:
+1. **Deobfuscate** ([`phish_guard/deobfuscate.py`](../phish_guard/deobfuscate.py)). Decider is asked about a readable copy of the text, while the `Chunk` keeps the raw one:
    - Unicode tag characters are decoded and zero-width characters dropped (taxonomy class E). Without this, an instruction in tag characters scores 0.10 on `instructs_ai`: Decider does not see it.
    - Inside words that mix Latin with Greek or Cyrillic letters, look-alike letters become Latin (class F). Words written entirely in one script are left alone.
    - A base64 run that decodes to readable text is followed by its decoded text (class J).
-2. **Ask** the three scanner questions of [`guardrails/questions.py`](../guardrails/questions.py) in one request. Answers are cached by text: Decider is deterministic, and headers, footers and menus repeat on every page.
+2. **Ask** the three scanner questions of [`phish_guard/questions.py`](../phish_guard/questions.py) in one request. Answers are cached by text: Decider is deterministic, and headers, footers and menus repeat on every page.
 3. **Decide** with `ScanPolicy`. A chunk is flagged when either:
    - `instructs_ai` is high **and** the chunk asks for user data (≥ 0.4) or claims authority (≥ 0.5).
      - A moderate `instructs_ai` alone is not enough, because benign text about AI assistants scores 0.79 to 0.81.

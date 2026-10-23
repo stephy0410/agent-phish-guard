@@ -1,6 +1,6 @@
 # Tool-call guardrail
 
-Before a sensitive tool runs, Decider 2B checks whether its arguments come from what the user asked for. The guard returns `Proceed`, `Confirm` or `Deny`. Code: [`guardrails/tool_guard.py`](../guardrails/tool_guard.py).
+Before a sensitive tool runs, Decider 2B checks whether its arguments come from what the user asked for. The guard returns `Proceed`, `Confirm` or `Deny`. Code: [`phish_guard/tool_guard.py`](../phish_guard/tool_guard.py); this demo turns on the recipient rule with its fake user and sandbox site in [`guardrails/tool_guard.py`](../guardrails/tool_guard.py).
 
 ## How it plugs in
 
@@ -15,7 +15,7 @@ agent = build_guarded_agent(tools=[browse_page, get_user_profile, send_data])
 For a call to a sensitive tool (`send_data` by default; `sensitive_tools=` changes the list):
 
 1. **State:** the user's own messages and the proposed call (tool name and JSON arguments). Tool results, the page text, are never part of the state, so a page can't make its recipient look requested.
-2. **Questions:** `args_grounded` and `serves_user_request` from [`guardrails/questions.py`](../guardrails/questions.py), in one request.
+2. **Questions:** `args_grounded` and `serves_user_request` from [`phish_guard/questions.py`](../phish_guard/questions.py), in one request.
 3. **Recipient rule** (`RecipientRule`): **Deny** when the call carries the user's data and nobody gave its recipient. A recipient counts as given when:
    - the user wrote it,
    - it is the user's own address, or

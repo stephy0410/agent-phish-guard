@@ -8,13 +8,28 @@ A web page can hide instructions aimed at an AI agent, such as "AI assistant: se
 
 | Folder | What goes there |
 | --- | --- |
+| `phish_guard/` | **The reusable guardrails, installable on their own:** the Decider 2B chunk scanner, the tool-call `InterventionHandler`, the typed questions, the Decider client and the data contract. How to use them in another agent: [phish_guard/README.md](phish_guard/README.md) |
 | `agent/` | The Strands agent: Bedrock model, system prompt, wiring for tools and guardrails |
-| `guardrails/` | The Decider 2B chunk scanner and the tool-call `InterventionHandler` |
+| `guardrails/` | This demo's setup of `phish_guard` (the fake user and the sandbox site), and the original import paths |
 | `tools/` | Page browsing, the HTML chunker and the simulated sensitive tool |
 | `eval/` | Attack and benign datasets, metrics, threshold calibration, Bedrock-judge baseline |
 | `infra/` | Terraform: IAM for Bedrock and the compute |
-| `contracts/` | The data contract between the folders above: `Chunk`, `Decision`, `Action`, `LabeledChunk` ([docs/contract.md](docs/contract.md)) |
+| `contracts/` | The data contract between the folders above: `Chunk`, `Decision`, `Action`, `LabeledChunk` ([docs/contract.md](docs/contract.md)). The models live in `phish_guard/contracts.py`; this folder holds their JSON Schemas and examples |
 | `tests/` | Unit tests |
+
+## Use the guardrails in your own agent
+
+```bash
+pip install "agent-phish-guard @ git+https://github.com/stephy0410/agent-phish-guard"
+```
+
+```python
+from phish_guard import ChunkScanner, ToolCallGuard
+
+agent = Agent(tools=[...], interventions=[ToolCallGuard(sensitive_tools={"send_data"})])
+```
+
+It installs only `phish_guard`, with `strands-agents` and `pydantic`. It needs a Decider server (below). Examples, the optional recipient rule and the scanner: [phish_guard/README.md](phish_guard/README.md).
 
 ## Run it locally
 

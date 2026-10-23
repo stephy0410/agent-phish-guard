@@ -8,7 +8,7 @@ Summary: [`eval/results/bedrock_judge.md`](../eval/results/bedrock_judge.md).
 
 ## Setup
 
-- Same wording and true/false descriptions as `guardrails/questions.py`, on the same
+- Same wording and true/false descriptions as `phish_guard/questions.py`, on the same
   deobfuscated text the scanner sends Decider. One Converse call per chunk for the three
   questions, temperature 0, JSON reply.
 - A judge answers yes or no, so "yes" counts as 1.0 under the scanner's `ScanPolicy`. That
