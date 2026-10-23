@@ -50,12 +50,12 @@ Decider answers each yes/no question with a probability, not just a label. Every
 
 - **Two signals before quarantine.** Text that only talks about AI assistants can score 0.79 to 0.81 on "instructs an AI". So a chunk is quarantined only when it also asks for data or claims authority. A very confident instruction (0.82 or more) is quarantined on its own.
 - **A lower bar where people don't look.** Text no person sees on the page (hidden by CSS, alt text, meta tags, JSON-LD) needs only 0.35, not 0.5. On the dev set, injections in meta tags and JSON-LD scored 0.39 to 0.42.
-- **Thresholds sit in gaps, not on data points.** Decider is deterministic on one machine, but the 3rd or 4th decimal shifts between CPU and GPU. Each threshold sits between the nearest benign and attack scores, in the dataset and outside it ([docs/calibration.md](docs/calibration.md)).
+- **Thresholds sit in gaps, not on data points.** Decider is deterministic on one machine, but the 3rd or 4th decimal shifts between a CPU and Apple silicon. Each threshold sits between the nearest benign and attack scores, in the dataset and outside it ([docs/calibration.md](docs/calibration.md)).
 - **The uncertain middle goes to the user.** The guard has three outcomes:
   - It proceeds when both questions score 0.6 or more.
   - It denies when "arguments come from the user" scores under 0.2.
   - Anything in between, it asks the user. The question names the recipient and the data, for example "It contains your card number and address".
-- **A rule where the model can't tell.** After "buy them with my saved details", an attacker's address looks as requested as a real checkout. On "arguments come from the user", the attacker's address scored 0.26 and a real checkout 0.23. So a rule decides instead: the user's data goes only to an address the user wrote, the user's own address, or the site being browsed.
+- **A rule where the model can't tell.** After "buy them with my saved details", an attacker's address looks about as requested as the store's checkout. In the demo-store runs, "arguments come from the user" scored 0.22 to 0.30 for the attacker's address ([docs/tool-guard.md](docs/tool-guard.md#on-the-demo-store)) and 0.31 to 0.41 for the store's checkout and cart pages (the [traces](eval/results/traces/README.md)). Both land in Confirm. So a rule decides instead: the user's data goes only to an address the user wrote, the user's own address, or the site being browsed.
 - **Fail closed.** If Decider can't be reached, the scanner raises an error instead of showing the page unchecked, and the guard denies the call.
 
 ## Results
