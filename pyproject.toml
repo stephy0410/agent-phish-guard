@@ -2,26 +2,40 @@
 name = "agent-phish-guard"
 version = "0.1.0"
 description = "Guardrails that protect AI agents from phishing pages, using Strands Decider 2B and Amazon Bedrock."
-readme = "README.md"
+readme = "phish_guard/README.md"
 license = "Apache-2.0"
 requires-python = ">=3.11"
+# What the installable phish_guard package needs. The demo's own packages are in the "demo" group.
 dependencies = [
-    "beautifulsoup4>=4.15.0",
-    "botocore[crt]>=1.43.114",
     "pydantic>=2.7",
     "strands-agents>=1.61",
 ]
+
+[project.urls]
+Repository = "https://github.com/stephy0410/agent-phish-guard"
 
 [dependency-groups]
 dev = [
     "pytest>=8.0",
     "ruff>=0.6",
 ]
+# The demo in this repo: the HTML chunker (tools/) and `aws login` credentials for Bedrock.
+demo = [
+    "beautifulsoup4>=4.15.0",
+    "botocore[crt]>=1.43.114",
+]
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+# Only the reusable guardrails are installed. agent/, guardrails/, tools/ and eval/ are this
+# repo's demo, imported from the repo root.
+packages = ["phish_guard"]
 
 [tool.uv]
-# The top-level folders (agent/, guardrails/, tools/, eval/) are imported from the repo root;
-# nothing here is built or published as a package.
-package = false
+default-groups = ["dev", "demo"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

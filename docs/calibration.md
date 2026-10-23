@@ -1,6 +1,6 @@
 # Threshold calibration
 
-The chunk scanner flags a page chunk with `ScanPolicy` (`guardrails/scanner.py`), five thresholds
+The chunk scanner flags a page chunk with `ScanPolicy` (`phish_guard/scanner.py`), five thresholds
 whose provisional values were picked on the dev set. This calibrates them on the labeled dataset
 (`eval/data/eval_dataset.csv`, 60 attacks + 60 benign), prioritizing attack recall. The generated
 numbers and full tables are in [`eval/results/calibration.md`](../eval/results/calibration.md); the
@@ -124,7 +124,9 @@ hardest false positive"). Reducing them needs better questions or page context, 
 
 ## Next
 
-1. Apply the two thresholds to `ScanPolicy`'s defaults and re-run `eval.run_dataset_metrics`.
+1. ~~Apply the two thresholds to `ScanPolicy`'s defaults and re-run `eval.run_dataset_metrics`.~~
+   Done: `ScanPolicy` defaults to 0.82 / 0.40. The re-run on an Apple M3 gives 45/54 and 3/60, the
+   same as the CPU replay ([`eval/results/dataset_metrics.md`](../eval/results/dataset_metrics.md)).
 2. Revisit the visible `instructs_ai` and `requests_user_data` bars once the dataset grows, with a
    train/test split by payload rather than by row.
 3. Pursue the model-side misses: better deobfuscation for homoglyphs and string extraction for

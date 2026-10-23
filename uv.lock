@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = ">=3.11"
 resolution-markers = [
     "python_full_version >= '3.14'",
@@ -11,15 +11,17 @@ resolution-markers = [
 [[package]]
 name = "agent-phish-guard"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
-    { name = "beautifulsoup4" },
-    { name = "botocore", extra = ["crt"] },
     { name = "pydantic" },
     { name = "strands-agents" },
 ]
 
 [package.dev-dependencies]
+demo = [
+    { name = "beautifulsoup4" },
+    { name = "botocore", extra = ["crt"] },
+]
 dev = [
     { name = "pytest" },
     { name = "ruff" },
@@ -27,13 +29,15 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "beautifulsoup4", specifier = ">=4.15.0" },
-    { name = "botocore", extras = ["crt"], specifier = ">=1.43.114" },
     { name = "pydantic", specifier = ">=2.7" },
     { name = "strands-agents", specifier = ">=1.61" },
 ]
 
 [package.metadata.requires-dev]
+demo = [
+    { name = "beautifulsoup4", specifier = ">=4.15.0" },
+    { name = "botocore", extras = ["crt"], specifier = ">=1.43.114" },
+]
 dev = [
     { name = "pytest", specifier = ">=8.0" },
     { name = "ruff", specifier = ">=0.6" },
