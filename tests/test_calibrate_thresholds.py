@@ -94,3 +94,40 @@ def test_sweep_and_lowest_at_fpr():
     best = lowest_at_fpr(pts, fpr_max=0.0)
     assert best["false_positive_rate"] == 0.0
     assert best["recall"] == 0.5
+
+
+def test_flags_matches_scanpolicy():
+    """calibrate.flags must agree with the real ScanPolicy.flags, so the sweep can't drift from
+    the policy it calibrates. Skipped where guardrails isn't importable; needs no Decider."""
+    import pytest
+
+    scanner = pytest.importorskip("guardrails.scanner")
+
+    class Chunk:
+        def __init__(self, visibility):
+            self.visibility = visibility
+
+    param_sets = [
+        {},
+        {"instructs_ai_alone": 0.82, "requests_user_data": 0.40},
+        {
+            "instructs_ai": 0.4,
+            "instructs_ai_unseen": 0.3,
+            "instructs_ai_alone": 0.75,
+            "requests_user_data": 0.45,
+            "claims_authority": 0.6,
+        },
+    ]
+    levels = [0.0, 0.33, 0.35, 0.49, 0.5, 0.79, 0.82, 0.9, 1.0]
+    for ps in param_sets:
+        mine, theirs = PolicyParams(**ps), scanner.ScanPolicy(**ps)
+        for vis in ("visible", "hidden", "metadata"):
+            for ia in levels:
+                for rq in (0.0, 0.5, 0.9):
+                    for au in (0.0, 0.5, 0.9):
+                        probs = {
+                            "instructs_ai": ia,
+                            "requests_user_data": rq,
+                            "claims_authority": au,
+                        }
+                        assert flags(probs, vis, mine) == theirs.flags(Chunk(vis), probs)

@@ -40,11 +40,12 @@ class PolicyParams:
 
 
 CURRENT = PolicyParams()
-# Chosen on dataset_scores.json; the reasoning is in docs/calibration.md. Lowering the "alone"
-# rule to 0.80 sits in the empty benign gap (benign instructs_ai tops out at 0.79, then 0.92),
-# and lowering the data bar to 0.40 recovers near-miss exfiltration rows; both leave the FPR at
-# 0.05 on this set. The other thresholds stay, because moving them would chase single rows.
-RECOMMENDED = PolicyParams(instructs_ai_alone=0.80, requests_user_data=0.40)
+# Chosen on dataset_scores.json and checked out of sample; the reasoning is in
+# docs/calibration.md. The "alone" rule drops to 0.82 (not 0.80: out of sample a dev comment
+# scores 0.807, so 0.82 sits between the highest benign seen, 0.807, and the next attack, 0.843),
+# and the data bar to 0.40 (which added no false alarm out of sample). The other thresholds stay,
+# because moving them would chase single rows.
+RECOMMENDED = PolicyParams(instructs_ai_alone=0.82, requests_user_data=0.40)
 
 
 def flags(probs: dict[str, float], visibility: str, p: PolicyParams) -> bool:
