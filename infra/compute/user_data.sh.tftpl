@@ -2,11 +2,39 @@
 # First boot of the agent instance (cloud-init). Log: /var/log/cloud-init-output.log.
 # Installs the agent and Decider 2B for a dedicated user and starts Decider as a service.
 # No credentials anywhere: the instance role provides them through IMDSv2.
+# Ends with /opt/phishguard/READY when Decider answers, or /opt/phishguard/FAILED.
 set -euxo pipefail
 
-# Safety net for the credits: the instance terminates itself (shutdown behavior = terminate)
-# even if nobody runs terraform destroy.
-shutdown -h +${auto_terminate_minutes} "agent-phish-guard: terminating after ${auto_terminate_minutes} minutes"
+# Safety net for the credits, set up first so it exists even if a later step fails: a timer
+# checks a fixed deadline every 5 minutes, on every boot, and powers off once it has passed
+# (shutdown behavior = terminate). A plain `shutdown -h +N` would be lost on a reboot.
+echo $(( $(date +%s) + ${auto_terminate_minutes} * 60 )) > /etc/phishguard-deadline
+cat > /usr/local/sbin/phishguard-deadline <<'SH'
+#!/bin/sh
+[ "$(date +%s)" -lt "$(cat /etc/phishguard-deadline)" ] || systemctl poweroff
+SH
+chmod 755 /usr/local/sbin/phishguard-deadline
+cat > /etc/systemd/system/phishguard-deadline.service <<'UNIT'
+[Unit]
+Description=Terminate the instance once its deadline has passed
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/phishguard-deadline
+UNIT
+cat > /etc/systemd/system/phishguard-deadline.timer <<'UNIT'
+[Unit]
+Description=Check the instance deadline every 5 minutes
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=5min
+
+[Install]
+WantedBy=timers.target
+UNIT
+systemctl daemon-reload
+systemctl enable --now phishguard-deadline.timer
 
 dnf install -y -q python3-pip tar gzip
 
@@ -34,6 +62,14 @@ sudo -u phishguard -H python3 -m pip install --user --quiet uv==0.12.15
 sudo -u phishguard -H bash -c 'cd /opt/phishguard/app && ~/.local/bin/uv sync --frozen --quiet'
 sudo -u phishguard -H bash -c '~/.local/bin/uv tool install --quiet strands-decider==0.1.0'
 
+# Decider's checkpoint at a pinned revision; serve takes a local path. (The Qwen base model it
+# loads by name can't be pinned through serve; see infra/README.md.)
+sudo -u phishguard -H bash -c '~/.local/share/uv/tools/strands-decider/bin/python -c "
+from huggingface_hub import snapshot_download
+snapshot_download(\"StrandsAgents/strands-decider-2B-qwen3.5-v1-2610\",
+                  revision=\"${decider_revision}\", local_dir=\"/opt/phishguard/models/decider\")
+"'
+
 cat > /etc/systemd/system/strands-decider.service <<'UNIT'
 [Unit]
 Description=Strands Decider 2B, local to the agent
@@ -44,7 +80,7 @@ Wants=network-online.target
 User=phishguard
 WorkingDirectory=/opt/phishguard
 Environment=HF_HOME=/opt/phishguard/.cache/huggingface
-ExecStart=/opt/phishguard/.local/bin/strands-decider serve StrandsAgents/strands-decider-2B-qwen3.5-v1-2610 --host 127.0.0.1 --port 8099 --device cpu
+ExecStart=/opt/phishguard/.local/bin/strands-decider serve /opt/phishguard/models/decider --model-name strands-decider-2B-qwen3.5-v1-2610 --host 127.0.0.1 --port 8099 --device cpu
 Restart=on-failure
 
 [Install]
@@ -53,9 +89,13 @@ UNIT
 systemctl daemon-reload
 systemctl enable --now strands-decider
 
-# Ready once Decider answers (the first start downloads the model from Hugging Face).
+# READY only once Decider answers (the first start downloads the base model).
 for _ in $(seq 1 120); do
-  curl -sf http://127.0.0.1:8099/health && break
+  if curl -sf http://127.0.0.1:8099/health; then
+    touch /opt/phishguard/READY
+    exit 0
+  fi
   sleep 10
 done
-touch /opt/phishguard/READY
+echo "Decider did not answer within 20 minutes; see journalctl -u strands-decider" > /opt/phishguard/FAILED
+exit 1

@@ -173,6 +173,7 @@ resource "aws_instance" "agent" {
     bucket                 = aws_s3_bucket.source.id
     key                    = aws_s3_object.source.key
     model_id               = var.bedrock_model_id
+    decider_revision       = var.decider_revision
     auto_terminate_minutes = var.auto_terminate_minutes
   })
   user_data_replace_on_change = true

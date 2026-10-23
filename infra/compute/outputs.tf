@@ -10,5 +10,5 @@ output "source_bucket" {
 
 output "auto_terminate" {
   description = "Safety net if nobody runs destroy."
-  value       = "The instance terminates itself ${var.auto_terminate_minutes} minutes after it boots."
+  value       = "The instance terminates itself ${var.auto_terminate_minutes} minutes after its first boot, even across reboots. Run destroy anyway: the bucket, security group and SSM permission stay until then."
 }

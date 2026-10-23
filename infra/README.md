@@ -66,7 +66,15 @@ Terraform creates the users without passwords, so no password ever lands in the 
 | Source bucket | Private, encrypted, HTTPS only. Holds the committed code packaged with `git archive`, so `.env` and `*.tfvars` never leave the laptop. Emptied and deleted by destroy. |
 | Role additions | `AmazonSSMManagedInstanceCore` (Session Manager instead of SSH) and read access to the one source object. Both are attached to the agent role by this stack and removed by its destroy. |
 
-Cost: about $0.10 an hour for the instance, plus a few cents of disk and Bedrock calls. Safety net: the instance terminates itself 3 hours after boot (`auto_terminate_minutes`), even if nobody runs destroy.
+Cost: about $0.10 an hour for the instance, plus a few cents of disk and Bedrock calls.
+
+Safety net: a systemd timer terminates the instance 3 hours after its first boot (`auto_terminate_minutes`), even across reboots and even if nobody runs destroy. That stops the bill, not the stack: the bucket, the security group and the SSM permission on the agent role stay until `terraform destroy`. They cost nothing, but run destroy anyway.
+
+First boot ends with `/opt/phishguard/READY` once Decider answers, or `/opt/phishguard/FAILED` if it doesn't within 20 minutes; the log is `/var/log/cloud-init-output.log`.
+
+Versions:
+- **Pinned:** uv, `strands-decider` and the Decider checkpoint (`decider_revision`, the Hugging Face revision the benchmarks used).
+- **Not pinned:** the Qwen base model it sits on. `strands-decider serve` loads it by name and has no revision option, so it follows the Hub's `main`. The checkpoint's `provenance.json` records the revision it was trained on.
 
 Speed, measured on 2026-10-22:
 - **First boot:** about 3 minutes until Decider answers.

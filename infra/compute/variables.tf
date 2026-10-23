@@ -32,6 +32,12 @@ variable "source_archive" {
   default     = "build/source.tar.gz"
 }
 
+variable "decider_revision" {
+  description = "Hugging Face revision of the Decider checkpoint: the one the benchmarks used."
+  type        = string
+  default     = "216d1ccb46a9e9b036eb9187b248db98480f77d4"
+}
+
 variable "bedrock_model_id" {
   description = "Model the agent uses. Must be one of the inference profiles the agent role allows."
   type        = string

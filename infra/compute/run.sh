@@ -18,13 +18,20 @@ print(json.dumps({"commands": ["sudo -u phishguard -H bash -lc " + shlex.quote(i
 command_id="$(aws ssm send-command --instance-ids "$id" --document-name AWS-RunShellScript \
   --parameters "$params" --timeout-seconds 3600 --query Command.CommandId --output text)"
 
+# Stop waiting a little after SSM's own 3600 s timeout, even if the status can't be read.
+deadline=$(($(date +%s) + 3660))
 while true; do
   status="$(aws ssm get-command-invocation --command-id "$command_id" --instance-id "$id" \
     --query Status --output text 2>/dev/null || echo Pending)"
   case "$status" in
-    Pending | InProgress | Delayed) sleep 10 ;;
+    Pending | InProgress | Delayed) ;;
     *) break ;;
   esac
+  if [ "$(date +%s)" -gt "$deadline" ]; then
+    echo "Gave up waiting for SSM command $command_id (last status: $status)" >&2
+    exit 1
+  fi
+  sleep 10
 done
 
 aws ssm get-command-invocation --command-id "$command_id" --instance-id "$id" \
