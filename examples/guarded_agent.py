@@ -7,7 +7,7 @@ own guarded agent.
 
 Start the Decider server and sign in to AWS (see the README), then:
 
-    uv run --env-file .env python examples/guarded_agent.py
+    uv run --env-file .env python -m examples.guarded_agent
 """
 
 from __future__ import annotations
@@ -54,7 +54,10 @@ def find_user_data(data: dict, recipient: str) -> list[str]:
 
 
 def ask_user(question: str) -> bool:
-    return input(f"{question} [y/N] ").strip().lower() == "y"
+    try:
+        return input(f"{question} [y/N] ").strip().lower() == "y"
+    except EOFError:  # nobody at the terminal to answer: that's a no
+        return False
 
 
 def build_agent(
@@ -120,8 +123,11 @@ def main() -> None:
     for record in scanner.quarantine:
         print(f"Scanner quarantined: {record.chunk.text[:70]}...")
     for record in guard.records:
-        recipient = record.arguments.get("recipient")
-        print(f"Guard: {record.action.type} {record.tool} to {recipient} ({record.action.reason})")
+        verdict = f"{record.action.type} {record.tool} to {record.arguments.get('recipient')}"
+        if record.action.type == "confirm":
+            verdict += f", the user said {record.user_response!r}"
+        print(f"Guard: {verdict}")
+        print(f"  Decider: {record.action.reason}")
     print(f"Sent: {SENT or 'nothing'}")
 
 
