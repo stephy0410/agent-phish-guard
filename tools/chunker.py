@@ -104,7 +104,7 @@ TECHNICAL_META = frozenset(
 """<meta> names that hold browser settings, not text, so they are not chunked."""
 
 # Only regular whitespace (plus NBSP). Not \s: we must not touch zero-width characters.
-_WHITESPACE = re.compile(r"[ \t\n\r\f\v ]+")
+_WHITESPACE = re.compile(r"[ \t\n\r\f\v\xa0]+")
 _SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
 _CSS_RULE = re.compile(r"([^{}]+)\{([^{}]*)\}")
 _SIMPLE_SELECTOR = re.compile(r"^(?:[a-zA-Z][\w-]*|\.[\w-]+|#[\w-]+)$")
