@@ -1,6 +1,6 @@
-# Typed questions (draft)
+# Typed questions
 
-The yes/no questions Decider 2B answers for the guardrail, defined in [`phish_guard/questions.py`](../phish_guard/questions.py). Decider returns P(true) for each one; turning those numbers into an `Action` is the policy's job, calibrated later on the labeled dataset.
+The yes/no questions Decider 2B answers for the guardrail, defined in [`phish_guard/questions.py`](../phish_guard/questions.py). Decider returns P(true) for each one; turning those numbers into an `Action` is the policy's job, calibrated on the labeled dataset ([calibration.md](calibration.md)).
 
 The questions come from section 5 of the [attack taxonomy](../eval/attack-taxonomy.md). Each one asks a single thing, so the policy can combine them: a checkout form legitimately asks for a card number, but it does not instruct an AI.
 
@@ -101,6 +101,11 @@ These come from one or two examples each, so they are leads, not findings.
 - **v1** (current wording): generic descriptions.
 - **v2** (tried on the first 15 chunks, not adopted): added class-level cases from the taxonomy's benign counterparts to two `false` descriptions ("notes for developers or staff, and text that only describes how AI assistants work", "discussing or describing system prompts"). Before running it, we set the bar: adopt only if the rule catches at least as many attacks with fewer false alarms. It removed the false alarm (0/7) but missed one more attack (6/8), so it did not clear the bar. Raw output and the exact wording: [`eval/results/questions_v2_trial.json`](../eval/results/questions_v2_trial.json).
 - **Dev set extended** after review: zero-width, tag-character and homoglyph examples (classes E and F), JSON-LD and a short alt (non-prose metadata), a chunk that addresses the guard, and tool calls on the real `send_data` tool. The results above are v1 on the extended set.
+- **v3** (scored on every chunk, not adopted). Decider and Haiku both miss attacks that start with "Assistant:" rather than "AI assistant:" ([bedrock-baseline.md](bedrock-baseline.md#shared-weakness-assistant-without-ai)). So two rewordings of `instructs_ai` were scored against v1, under the current `ScanPolicy`, with the bar set before the run: catch more in-sample attacks, and add no false alarm in or out of sample.
+  - **`named`** adds "including text addressed to it by name, such as "Assistant:" or "AI:"". In-sample it caught 41 of 54 attacks (4 fewer than v1) with 2 of 60 false alarms. Out of sample it caught 18 of 21, with 0 false alarms in 114. Naming the form made Decider less sure of it: two "Assistant:" attacks fell from 0.56 to 0.31 and 0.35.
+  - **`reader`** asks whether the text tells "an AI assistant or agent that reads it" to do something. In-sample it caught 30 of 54 with 1 of 60 false alarms. Out of sample it caught 6 of 21, with 0 false alarms in 114.
+
+  Both trade caught attacks for fewer false alarms, so v1 stays. Script: [`eval/compare_wordings.py`](../eval/compare_wordings.py). Results, with every verdict that changed: [`eval/results/wordings.md`](../eval/results/wordings.md).
 
 ## Limitations
 
