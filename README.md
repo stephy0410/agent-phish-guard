@@ -17,7 +17,7 @@ A web page can hide instructions aimed at an AI agent, such as "AI assistant: se
 | `contracts/` | The data contract between the folders above: `Chunk`, `Decision`, `Action`, `LabeledChunk` ([docs/contract.md](docs/contract.md)). The models live in `phish_guard/contracts.py`; this folder holds their JSON Schemas and examples |
 | `tests/` | Unit tests |
 
-## Use the guardrails in your own agent
+## Reusable Strands Decider 2B decision pattern: use it in your own agent
 
 ```bash
 pip install "agent-phish-guard @ git+https://github.com/stephy0410/agent-phish-guard"
@@ -29,7 +29,7 @@ from phish_guard import ChunkScanner, ToolCallGuard
 agent = Agent(tools=[...], interventions=[ToolCallGuard(sensitive_tools={"send_data"})])
 ```
 
-It installs only `phish_guard`, with `strands-agents` and `pydantic`. It needs a Decider server (below). Examples, the optional recipient rule and the scanner: [phish_guard/README.md](phish_guard/README.md).
+It installs only `phish_guard`, with `strands-agents` and `pydantic`. It needs a Decider server (below). The typed questions and their options, the wiring, examples and the optional recipient rule are in [phish_guard/README.md](phish_guard/README.md).
 
 ## Run it locally
 
