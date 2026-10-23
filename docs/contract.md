@@ -1,6 +1,6 @@
-# Interface contract (v0.1)
+# Data contract
 
-The four kinds of data that move between the tools, the guardrails and the evaluation. Agree on these and each of us can build our part in parallel.
+The four kinds of data that move between the tools, the guardrails and the evaluation. Fixing them first let each part be built in parallel.
 
 ```
 tools/ (Ale)                 guardrails/ (Stephy)                      agent
@@ -17,7 +17,7 @@ eval/ (Hannah)
 | `Action` | `guardrails/` policy | the agent, `eval/`, the demo UI | [action.schema.json](../contracts/schemas/action.schema.json) | [action.json](../contracts/examples/action.json), [action_tool_call.json](../contracts/examples/action_tool_call.json) |
 | `LabeledChunk` | `eval/` datasets (JSONL) | `eval/` metrics | [labeled_chunk.schema.json](../contracts/schemas/labeled_chunk.schema.json) | [labeled_chunk.json](../contracts/examples/labeled_chunk.json) |
 
-In Python, import the models instead of handling raw dicts: `from contracts import Chunk, Decision, Action, LabeledChunk`. They reject unknown fields and out-of-range values, so a mismatch fails loudly where it happens.
+In Python, import the models instead of handling raw dicts: `from phish_guard import Chunk, Decision, Action, LabeledChunk` (`from contracts import …` still works in this repo). They reject unknown fields and out-of-range values, so a mismatch fails loudly where it happens.
 
 ## Chunk
 

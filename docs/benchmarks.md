@@ -62,7 +62,8 @@ Generated table: [`eval/results/latency_cost.md`](../eval/results/latency_cost.m
   - **Bedrock** charges per token, so the bill grows with every chunk.
   - **Decider** has no per-call price; the cost is the machine it runs on.
   - **Break-even:** a machine rented by the hour costs less than the judge once it scans more than its hourly price divided by $0.000534. For an `m7i.xlarge` at $0.2016/h, that's **378 chunks per hour**, as long as it takes under 9.5 s per chunk.
-  - **Unmeasured:** we didn't measure Decider's speed on that instance. On the M3 it takes 0.62 s, so the bar leaves room for a CPU about 15 times slower.
+  - **Measured on a CPU since:** on the Free plan's `m7i-flex.large` (2 vCPU, $0.0958/h on demand in `us-east-1`), Decider takes about 9.3 s per chunk ([infra/README.md](../infra/README.md#compute-run-the-agent-on-ec2)). That's 387 chunks per hour against a break-even of 179, so about **$0.25 per 1,000 chunks** of instance time against Haiku's $0.53.
+  - **The catch:** at 9.3 s, a chunk takes 15 times as long as Haiku's 0.6 s. A CPU suits batch scanning; an interactive agent needs a GPU or Apple silicon.
   - **Concurrency:** chunks per hour is a throughput, and both sides were measured one request at a time. Decider's server has 24 slots and Bedrock takes parallel calls, so either side could do more per hour; that wasn't measured.
 - **Cold start.** The first pass of a fresh session is slower at p95 (761 ms): on Apple silicon, the first request at each new input length compiles kernels. Every chunk is different, so the scanner's cache plays no part here.
 - **Accuracy** is in [bedrock-baseline.md](bedrock-baseline.md): both catch about the same number of attacks, and Haiku makes fewer false alarms (0/60 against 3/60).
